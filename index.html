@@ -125,7 +125,7 @@
       ctx.putImageData(output, 0, 0);
     }
 
-    // Capture with scanner-like effect
+    // Capture with stronger scanner-like effect
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
@@ -142,8 +142,8 @@
         sy = (video.videoHeight - sHeight) / 2;
       }
 
-      // Apply scanner-like filter
-      ctx.filter = "contrast(1.5) brightness(1.1) grayscale(0.3)";
+      // Apply stronger scanner-like filter
+      ctx.filter = "contrast(1.8) brightness(1.3) grayscale(0.4)";
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none";
 
