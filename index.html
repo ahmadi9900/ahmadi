@@ -147,7 +147,7 @@
     canvas.width = ID_WIDTH;
     canvas.height = ID_HEIGHT;
 
- function updateOverlay() {
+    function updateOverlay() {
   const container = video.parentElement;
   const cw = container.clientWidth;
   const ch = container.clientHeight;
@@ -159,12 +159,6 @@
     oh = ch * 0.9;
     ow = oh * ID_RATIO;
   }
-
-  overlay.style.width = ow + "px";
-  overlay.style.height = oh + "px";
-  overlay.style.left = (cw - ow) / 2 + "px";
-  overlay.style.top = (ch - oh) / 2 + "px";
-}
 
   overlay.style.width = ow + "px";
   overlay.style.height = oh + "px";
