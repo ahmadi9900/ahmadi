@@ -150,15 +150,52 @@ document.getElementById("completeBtn").onclick = () => {
   }
 
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF("p","mm","a4");
 
-  ids.forEach((id,index)=>{
-    if(index !== 0) pdf.addPage();
-    pdf.addImage(id.front,"JPEG",10,20,190,60);
-    pdf.addImage(id.back,"JPEG",10,100,190,60);
-  });
+// Custom page size (ID ratio)
+const pageWidth = 210; // mm
+const pageHeight = pageWidth / 1.586;
 
-  pdf.save("ID_Cards.pdf");
+const pdf = new jsPDF({
+  orientation: "portrait",
+  unit: "mm",
+  format: [pageWidth, pageHeight]
+});
+
+ids.forEach((id, index) => {
+
+  if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
+
+  // Slight zoom crop (5%)
+  function zoomImage(imgData) {
+    const img = new Image();
+    img.src = imgData;
+
+    const tempCanvas = document.createElement("canvas");
+    const ctx = tempCanvas.getContext("2d");
+
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+
+    const zoom = 0.95;
+    const sw = canvas.width * zoom;
+    const sh = canvas.height * zoom;
+    const sx = (canvas.width - sw) / 2;
+    const sy = (canvas.height - sh) / 2;
+
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+    return tempCanvas.toDataURL("image/jpeg", 1.0);
+  }
+
+  const frontImg = id.front;
+  const backImg = id.back;
+
+  pdf.addImage(frontImg, "JPEG", 0, 0, pageWidth, pageHeight / 2);
+  pdf.addImage(backImg, "JPEG", 0, pageHeight / 2, pageWidth, pageHeight / 2);
+
+});
+
+pdf.save("ID_Cards.pdf");
   statusText.innerText = "PDF Generated Successfully";
 };
 </script>
