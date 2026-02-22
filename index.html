@@ -150,13 +150,10 @@ document.getElementById("completeBtn").onclick = () => {
 
   const { jsPDF } = window.jspdf;
 
-  // Define ID card ratio (85.6mm x 54mm ≈ 1.586)
   const cardWidth = 85.6; 
   const cardHeight = 54; 
-
-  // Page size: make it taller so both sides fit stacked
-  const pageWidth = cardWidth + 20;   // add margin
-  const pageHeight = (cardHeight * 2) + 40; // front + back + margins
+  const pageWidth = cardWidth + 20;   
+  const pageHeight = (cardHeight * 2) + 40; 
 
   const pdf = new jsPDF({
     orientation: "portrait",
@@ -167,19 +164,16 @@ document.getElementById("completeBtn").onclick = () => {
   ids.forEach((id, index) => {
     if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
 
-    // Center horizontally
     const x = (pageWidth - cardWidth) / 2;
 
-    // Front side at top
     pdf.addImage(id.front, "JPEG", x, 20, cardWidth, cardHeight);
-
-    // Back side below
     pdf.addImage(id.back, "JPEG", x, 20 + cardHeight + 10, cardWidth, cardHeight);
   });
 
   pdf.save("ID_Cards.pdf");
   statusText.innerText = "PDF Generated Successfully";
 };
+
 
 </script>
 
