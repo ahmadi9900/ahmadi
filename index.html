@@ -112,7 +112,7 @@ document.getElementById("captureBtn").onclick = () => {
   const ctx = canvas.getContext("2d");
   ctx.drawImage(video,0,0);
 
-  const image = canvas.toDataURL("image/jpeg",1.0);
+  const image = canvas.toDataURL("image/png");
 
   if(isFront){
     currentFront = image;
