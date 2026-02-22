@@ -156,7 +156,7 @@
       cards.forEach((card, index) => {
         if (index > 0) pdf.addPage();
 
-        const imgWidth = 150;
+        const imgWidth = 160; // larger size
         const imgHeight = imgWidth / ID_RATIO;
         const pageWidth = pdf.internal.pageSize.getWidth();
 
@@ -167,7 +167,7 @@
 
         // Center back image below front
         const xBack = (pageWidth - imgWidth) / 2;
-        const yBack = yFront + imgHeight + 20;
+        const yBack = yFront + imgHeight + 25;
         pdf.addImage(card.back, "JPEG", xBack, yBack, imgWidth, imgHeight);
       });
 
