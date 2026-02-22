@@ -13,8 +13,8 @@
 <body>
   <h1>ID Card Scanner</h1>
   <button id="startCamera">Start Camera</button><br>
-  <video id="video" width="400" height="300" autoplay></video>
-  <canvas id="canvas" width="400" height="300" style="display:none;"></canvas><br>
+  <video id="video" width="400" height="300" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas><br>
   
   <button id="capture">Capture</button>
   <button id="nextId">Next ID</button>
@@ -34,20 +34,46 @@
     let currentCard = {};
     let cards = [];
 
-    document.getElementById('startCamera').onclick = async () => {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } } // forces back camera
-    });
-    video.srcObject = stream;
-    status.textContent = "Status: Back camera started";
-  } catch (err) {
-    status.textContent = "Error: " + err.message;
-  }
-};
+    // ID card ratio (ISO/IEC 7810 ID-1 format)
+    const ID_RATIO = 1.586; 
+    const ID_WIDTH = 400;   
+    const ID_HEIGHT = Math.round(ID_WIDTH / ID_RATIO);
+    canvas.width = ID_WIDTH;
+    canvas.height = ID_HEIGHT;
 
+    // Start back camera
+    document.getElementById('startCamera').onclick = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
+        });
+        video.srcObject = stream;
+        status.textContent = "Status: Back camera started";
+      } catch (err) {
+        status.textContent = "Error: " + err.message;
+      }
+    };
+
+    // Capture with correct ratio
     document.getElementById('capture').onclick = () => {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const videoRatio = video.videoWidth / video.videoHeight;
+      let sx, sy, sWidth, sHeight;
+
+      if (videoRatio > ID_RATIO) {
+        // video wider than ID ratio → crop sides
+        sHeight = video.videoHeight;
+        sWidth = sHeight * ID_RATIO;
+        sx = (video.videoWidth - sWidth) / 2;
+        sy = 0;
+      } else {
+        // video taller than ID ratio → crop top/bottom
+        sWidth = video.videoWidth;
+        sHeight = sWidth / ID_RATIO;
+        sx = 0;
+        sy = (video.videoHeight - sHeight) / 2;
+      }
+
+      ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
       const imageData = canvas.toDataURL("image/jpeg", 0.9);
 
       if (captureStep === 0) {
@@ -61,6 +87,7 @@
       }
     };
 
+    // Save card and reset for next
     document.getElementById('nextId').onclick = () => {
       if (currentCard.front && currentCard.back) {
         cards.push(currentCard);
@@ -71,6 +98,7 @@
       }
     };
 
+    // Generate PDF
     document.getElementById('complete').onclick = () => {
       if (currentCard.front && currentCard.back) {
         cards.push(currentCard);
