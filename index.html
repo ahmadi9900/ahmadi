@@ -25,6 +25,7 @@
       margin-bottom: 25px;
     }
 
+    /* Vertical button layout below scan area */
     .button-column {
       display: flex;
       flex-direction: column;
@@ -63,6 +64,7 @@
   
   <canvas id="canvas"></canvas>
   
+  <!-- Buttons below scan area -->
   <div class="button-column">
     <button id="startCamera">Start Camera</button>
     <button id="capture">Capture</button>
@@ -121,39 +123,6 @@
       }
     };
 
-    // Sharpening function
-    function sharpen(ctx, width, height) {
-      const imageData = ctx.getImageData(0, 0, width, height);
-      const data = imageData.data;
-      const weights = [0, -1, 0, -1, 5, -1, 0, -1, 0];
-      const side = 3;
-      const halfSide = 1;
-      const output = ctx.createImageData(width, height);
-      const dst = output.data;
-
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          for (let c = 0; c < 3; c++) {
-            let i = (y * width + x) * 4 + c;
-            let value = 0;
-            for (let cy = 0; cy < side; cy++) {
-              for (let cx = 0; cx < side; cx++) {
-                let scy = y + cy - halfSide;
-                let scx = x + cx - halfSide;
-                if (scy >= 0 && scy < height && scx >= 0 && scx < width) {
-                  let si = (scy * width + scx) * 4 + c;
-                  value += data[si] * weights[cy * side + cx];
-                }
-              }
-            }
-            dst[i] = Math.min(Math.max(value, 0), 255);
-          }
-          dst[(y * width + x) * 4 + 3] = 255;
-        }
-      }
-      ctx.putImageData(output, 0, 0);
-    }
-
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
@@ -170,13 +139,10 @@
         sy = (video.videoHeight - sHeight) / 2;
       }
 
-      // Apply extreme scanner-like filter
+      // Apply strong scanner-like filter
       ctx.filter = "contrast(4.0) brightness(2.5) grayscale(0.8)";
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none";
-
-      // Apply sharpening
-      sharpen(ctx, canvas.width, canvas.height);
 
       const imageData = canvas.toDataURL("image/jpeg", 0.95);
 
@@ -231,4 +197,9 @@
       });
 
       pdf.save("IDCards.pdf");
-      status.textContent = "PDF generated with " + cards.length + " ID cards
+      status.textContent = "PDF generated with " + cards.length + " ID cards.";
+      cards = [];
+    };
+  </script>
+</body>
+</html>
