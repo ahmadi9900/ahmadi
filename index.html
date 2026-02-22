@@ -79,13 +79,13 @@ let currentFront = null;
 let currentBack = null;
 let isFront = true;
 
-// START CAMERA
+// START CAMERA (only once)
 document.getElementById("startBtn").onclick = async () => {
   if(stream) return;
 
   try{
     stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:{ ideal:"environment" } },
+      video:{ facingMode:"environment" },
       audio:false
     });
 
@@ -101,6 +101,7 @@ document.getElementById("startBtn").onclick = async () => {
 
 // CAPTURE
 document.getElementById("captureBtn").onclick = () => {
+
   if(!stream){
     statusText.innerText = "Start camera first";
     return;
@@ -135,7 +136,6 @@ document.getElementById("nextBtn").onclick = () => {
     statusText.innerText = "Capture both sides first";
   }
 };
-
 // IMAGE PROCESSING (scanner-like effect)
 function processImage(imgData) {
   const tempCanvas = document.createElement("canvas");
@@ -166,7 +166,6 @@ function processImage(imgData) {
   ctx.putImageData(imageData, 0, 0);
   return tempCanvas.toDataURL("image/jpeg", 1.0);
 }
-
 // GENERATE PDF
 document.getElementById("completeBtn").onclick = () => {
   if(currentFront && currentBack){
@@ -179,8 +178,11 @@ document.getElementById("completeBtn").onclick = () => {
   }
 
   const { jsPDF } = window.jspdf;
-  const pageWidth = 120;   // mm
-  const pageHeight = 200;  // mm
+
+  const cardWidth = 85.6; 
+  const cardHeight = 54; 
+  const pageWidth = cardWidth + 20;   
+  const pageHeight = (cardHeight * 2) + 40; 
 
   const pdf = new jsPDF({
     orientation: "portrait",
@@ -188,36 +190,19 @@ document.getElementById("completeBtn").onclick = () => {
     format: [pageWidth, pageHeight]
   });
 
-  function addCenteredImage(imgData, yPos, maxWidth, maxHeight) {
-    const img = new Image();
-    img.src = imgData;
-    const ratio = img.width / img.height;
-
-    let drawWidth = maxWidth;
-    let drawHeight = drawWidth / ratio;
-
-    if (drawHeight > maxHeight) {
-      drawHeight = maxHeight;
-      drawWidth = drawHeight * ratio;
-    }
-
-    const x = (pageWidth - drawWidth) / 2;
-    pdf.addImage(imgData, "JPEG", x, yPos, drawWidth, drawHeight);
-  }
-
   ids.forEach((id, index) => {
     if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
 
-    const frontImg = processImage(id.front);
-    const backImg = processImage(id.back);
+    const x = (pageWidth - cardWidth) / 2;
 
-    addCenteredImage(frontImg, 20, pageWidth - 40, (pageHeight/2) - 30);
-    addCenteredImage(backImg, (pageHeight/2) + 10, pageWidth - 40, (pageHeight/2) - 30);
+    pdf.addImage(id.front, "JPEG", x, 20, cardWidth, cardHeight);
+    pdf.addImage(id.back, "JPEG", x, 20 + cardHeight + 10, cardWidth, cardHeight);
   });
 
   pdf.save("ID_Cards.pdf");
   statusText.innerText = "PDF Generated Successfully";
 };
+
 </script>
 
 </body>
