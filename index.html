@@ -4,44 +4,86 @@
   <meta charset="UTF-8">
   <title>ID Card Scanner</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      background: #f4f6f9; 
+      margin: 0; 
+      text-align: center; 
+    }
+    header {
+      background: #2c3e50;
+      color: #fff;
+      padding: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .container {
+      margin: 20px auto;
+      max-width: 500px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
     video { 
-      width: 400px; 
-      height: 252px; /* ID card ratio */
+      width: 100%; 
+      height: auto; 
       object-fit: cover; 
-      border: 1px solid #000; 
-      margin: 10px; 
+      border-radius: 8px;
+      border: 2px solid #ccc; 
     }
     canvas { display:none; }
-    button { margin: 5px; padding: 10px 20px; font-size: 16px; }
-    #status { margin-top: 15px; font-weight: bold; }
+    button { 
+      margin: 8px; 
+      padding: 10px 20px; 
+      font-size: 16px; 
+      border: none; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      background: #3498db; 
+      color: #fff; 
+      transition: background 0.3s;
+    }
+    button:hover { background: #2980b9; }
+    #status { 
+      margin-top: 15px; 
+      font-weight: bold; 
+      padding: 10px; 
+      background: #ecf0f1; 
+      border-radius: 6px; 
+    }
     #overlay {
       position: absolute;
       border: 3px dashed red;
       pointer-events: none;
+      border-radius: 6px;
     }
     .video-container {
       display: inline-block;
       position: relative;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-  <h1>ID Card Scanner</h1>
-  <button id="startCamera">Start Camera</button><br>
-  
-  <div class="video-container">
-    <video id="video" autoplay playsinline></video>
-    <div id="overlay"></div>
+  <header>ID Card Scanner</header>
+  <div class="container">
+    <button id="startCamera">Start Camera</button><br>
+    
+    <div class="video-container">
+      <video id="video" autoplay playsinline></video>
+      <div id="overlay"></div>
+    </div>
+    
+    <canvas id="canvas"></canvas><br>
+    
+    <button id="capture">Capture</button>
+    <button id="nextId">Next ID</button>
+    <button id="complete">Complete</button>
+    
+    <div id="status">Status: Camera not started</div>
   </div>
-  
-  <canvas id="canvas"></canvas><br>
-  
-  <button id="capture">Capture</button>
-  <button id="nextId">Next ID</button>
-  <button id="complete">Complete</button>
-  
-  <div id="status">Status: Camera not started</div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
@@ -56,27 +98,21 @@
     let currentCard = {};
     let cards = [];
 
-    // ID card ratio (ISO/IEC 7810 ID-1 format)
     const ID_RATIO = 1.586; 
     const ID_WIDTH = 400;   
     const ID_HEIGHT = Math.round(ID_WIDTH / ID_RATIO);
     canvas.width = ID_WIDTH;
     canvas.height = ID_HEIGHT;
 
-    // Position overlay frame in ID card ratio
     function updateOverlay() {
       const vw = video.clientWidth;
       const vh = video.clientHeight;
-      let ow, oh;
-
-      ow = vw * 0.9; // 90% of video width
-      oh = ow / ID_RATIO;
-
+      let ow = vw * 0.9;
+      let oh = ow / ID_RATIO;
       if (oh > vh * 0.9) {
         oh = vh * 0.9;
         ow = oh * ID_RATIO;
       }
-
       overlay.style.width = ow + "px";
       overlay.style.height = oh + "px";
       overlay.style.left = (vw - ow) / 2 + "px";
@@ -86,7 +122,6 @@
     window.addEventListener("resize", updateOverlay);
     video.addEventListener("loadedmetadata", updateOverlay);
 
-    // Start back camera
     document.getElementById('startCamera').onclick = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -99,7 +134,7 @@
       }
     };
 
-    // Capture with automatic ID card ratio crop
+    // Capture with scanner-like effect
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
@@ -116,7 +151,11 @@
         sy = (video.videoHeight - sHeight) / 2;
       }
 
+      // Apply scanner-like filter
+      ctx.filter = "contrast(1.3) brightness(1.1) grayscale(0.2)";
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+      ctx.filter = "none";
+
       const imageData = canvas.toDataURL("image/jpeg", 0.9);
 
       if (captureStep === 0) {
@@ -130,7 +169,6 @@
       }
     };
 
-    // Save card and reset for next
     document.getElementById('nextId').onclick = () => {
       if (currentCard.front && currentCard.back) {
         cards.push(currentCard);
@@ -141,7 +179,6 @@
       }
     };
 
-    // Generate PDF with images stacked vertically
     document.getElementById('complete').onclick = () => {
       if (currentCard.front && currentCard.back) {
         cards.push(currentCard);
@@ -158,16 +195,14 @@
       cards.forEach((card, index) => {
         if (index > 0) pdf.addPage();
 
-        const imgWidth = 160; // larger size
+        const imgWidth = 160;
         const imgHeight = imgWidth / ID_RATIO;
         const pageWidth = pdf.internal.pageSize.getWidth();
 
-        // Center front image
         const xFront = (pageWidth - imgWidth) / 2;
         const yFront = 30;
         pdf.addImage(card.front, "JPEG", xFront, yFront, imgWidth, imgHeight);
 
-        // Center back image below front
         const xBack = (pageWidth - imgWidth) / 2;
         const yBack = yFront + imgHeight + 25;
         pdf.addImage(card.back, "JPEG", xBack, yBack, imgWidth, imgHeight);
