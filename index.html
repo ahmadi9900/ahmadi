@@ -150,12 +150,51 @@ document.getElementById("completeBtn").onclick = () => {
   }
 
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF("p","mm","a4");
 
-  ids.forEach((id,index)=>{
-    if(index !== 0) pdf.addPage();
-    pdf.addImage(id.front,"JPEG",10,20,190,60);
-    pdf.addImage(id.back,"JPEG",10,100,190,60);
+  // Real ID ratio page
+  const pageWidth = 85.6; // mm
+  const pageHeight = 53.98; // mm
+
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: [pageWidth, pageHeight]
+  });
+
+  ids.forEach((id, index) => {
+
+    if(index !== 0){
+      pdf.addPage([pageWidth, pageHeight], "landscape");
+    }
+
+    // slight zoom crop (5%)
+    function zoomAndAdd(imgData){
+      const img = new Image();
+      img.src = imgData;
+
+      const tempCanvas = document.createElement("canvas");
+      const ctx = tempCanvas.getContext("2d");
+
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+
+      const zoom = 0.95;
+      const sw = canvas.width * zoom;
+      const sh = canvas.height * zoom;
+      const sx = (canvas.width - sw) / 2;
+      const sy = (canvas.height - sh) / 2;
+
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+      return tempCanvas.toDataURL("image/png");
+    }
+
+    const frontImg = id.front;
+    pdf.addImage(frontImg, "PNG", 0, 0, pageWidth, pageHeight);
+
+    pdf.addPage([pageWidth, pageHeight], "landscape");
+    pdf.addImage(id.back, "PNG", 0, 0, pageWidth, pageHeight);
+
   });
 
   pdf.save("ID_Cards.pdf");
