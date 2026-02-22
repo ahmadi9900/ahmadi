@@ -34,6 +34,12 @@
       border: 2px solid #ccc; 
     }
     canvas { display:none; }
+    .button-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
     button { 
       margin: 8px; 
       padding: 10px 20px; 
@@ -44,6 +50,7 @@
       background: #3498db; 
       color: #fff; 
       transition: background 0.3s;
+      min-width: 120px;
     }
     button:hover { background: #2980b9; }
     #status { 
@@ -63,24 +70,27 @@
       display: inline-block;
       position: relative;
       width: 100%;
+      margin-top: 15px;
     }
   </style>
 </head>
 <body>
   <header>ID Card Scanner</header>
   <div class="container">
-    <button id="startCamera">Start Camera</button><br>
+    <button id="startCamera">Start Camera</button>
     
     <div class="video-container">
       <video id="video" autoplay playsinline></video>
       <div id="overlay"></div>
     </div>
     
-    <canvas id="canvas"></canvas><br>
+    <canvas id="canvas"></canvas>
     
-    <button id="capture">Capture</button>
-    <button id="nextId">Next ID</button>
-    <button id="complete">Complete</button>
+    <div class="button-group">
+      <button id="capture">Capture</button>
+      <button id="nextId">Next ID</button>
+      <button id="complete">Complete</button>
+    </div>
     
     <div id="status">Status: Camera not started</div>
   </div>
@@ -134,7 +144,6 @@
       }
     };
 
-    // Capture with scanner-like effect
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
@@ -151,7 +160,6 @@
         sy = (video.videoHeight - sHeight) / 2;
       }
 
-      // Apply scanner-like filter
       ctx.filter = "contrast(1.3) brightness(1.1) grayscale(0.2)";
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none";
