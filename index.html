@@ -5,7 +5,7 @@
   <title>ID Card Scanner</title>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-    video { border: 1px solid #000; margin: 10px; position: relative; }
+    video { border: 1px solid #000; margin: 10px; }
     canvas { display:none; }
     button { margin: 5px; padding: 10px 20px; font-size: 16px; }
     #status { margin-top: 15px; font-weight: bold; }
@@ -57,18 +57,20 @@
     canvas.width = ID_WIDTH;
     canvas.height = ID_HEIGHT;
 
-    // Position overlay frame
+    // Position overlay frame in landscape ratio
     function updateOverlay() {
       const vw = video.clientWidth;
       const vh = video.clientHeight;
       let ow, oh;
 
-      if (vw / vh > ID_RATIO) {
-        oh = vh * 0.8; // 80% of video height
+      // Always enforce landscape ratio
+      ow = vw * 0.8; // 80% of video width
+      oh = ow / ID_RATIO;
+
+      // If overlay taller than video, shrink to fit
+      if (oh > vh * 0.8) {
+        oh = vh * 0.8;
         ow = oh * ID_RATIO;
-      } else {
-        ow = vw * 0.8; // 80% of video width
-        oh = ow / ID_RATIO;
       }
 
       overlay.style.width = ow + "px";
@@ -93,17 +95,19 @@
       }
     };
 
-    // Capture with correct ratio
+    // Capture with correct landscape ratio
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
 
       if (videoRatio > ID_RATIO) {
+        // video wider than ID ratio → crop sides
         sHeight = video.videoHeight;
         sWidth = sHeight * ID_RATIO;
         sx = (video.videoWidth - sWidth) / 2;
         sy = 0;
       } else {
+        // video taller than ID ratio → crop top/bottom
         sWidth = video.videoWidth;
         sHeight = sWidth / ID_RATIO;
         sx = 0;
