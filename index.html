@@ -1,204 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ID Card Scanner</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<style>
-body{
-  margin:0;
-  text-align:center;
-  font-family:Arial;
-  background:#f2f2f2;
-}
-
-h2{ margin-top:15px; }
-
-video{
-  width:95%;
-  max-width:420px;
-  aspect-ratio:1.586;
-  object-fit:cover;
-  background:black;
-  border-radius:15px;
-  margin-top:10px;
-}
-
-button{
-  padding:12px 20px;
-  margin:6px;
-  font-size:15px;
-  border:none;
-  border-radius:8px;
-  color:white;
-}
-
-#startBtn{ background:#333; }
-#captureBtn{ background:#0066ff; }
-#nextBtn{ background:#ff9900; }
-#completeBtn{ background:#28a745; }
-
-#status{
-  margin-top:10px;
-  font-weight:bold;
-}
-
-canvas{ display:none; }
-</style>
+  <meta charset="UTF-8">
+  <title>ID Card Scanner</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    video, canvas { border: 1px solid #333; margin: 10px; }
+    button { margin: 10px; padding: 10px 20px; }
+  </style>
 </head>
-
 <body>
+  <h1>ID Card Scanner</h1>
+  <video id="camera" autoplay playsinline></video>
+  <canvas id="captureCanvas" width="640" height="400" style="display:none;"></canvas>
+  <div>
+    <button onclick="scanSide('front')">Scan Front</button>
+    <button onclick="scanSide('back')">Scan Back</button>
+    <button onclick="nextCard()">Next Card</button>
+    <button onclick="complete()">Complete</button>
+  </div>
 
-<h2>ID Card Scanner</h2>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('captureCanvas');
+    const ctx = canvas.getContext('2d');
+    let currentCard = { front: null, back: null };
+    let cards = [];
 
-<button id="startBtn">Start Camera</button>
+    // Start camera
+    navigator.mediaDevices.getUserMedia({ video: { aspectRatio: 1.6 } })
+      .then(stream => { video.srcObject = stream; });
 
-<br>
+    function scanSide(side) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      currentCard[side] = canvas.toDataURL('image/png');
+      alert(side + " side scanned!");
+    }
 
-<video id="video" playsinline autoplay muted></video>
+    function nextCard() {
+      if (currentCard.front && currentCard.back) {
+        cards.push({ ...currentCard });
+        currentCard = { front: null, back: null };
+        alert("Card saved. Ready for next.");
+      } else {
+        alert("Please scan both sides first.");
+      }
+    }
 
-<br>
+    async function complete() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
 
-<button id="captureBtn">Capture</button>
-<button id="nextBtn">Next ID</button>
-<button id="completeBtn">Complete</button>
+      cards.forEach((card, index) => {
+        if (index > 0) pdf.addPage();
+        pdf.addImage(card.front, 'PNG', 10, 10, 180, 120);
+        pdf.addPage();
+        pdf.addImage(card.back, 'PNG', 10, 10, 180, 120);
+      });
 
-<div id="status">Status: Camera not started</div>
-
-<canvas id="canvas"></canvas>
-
-<script>
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const statusText = document.getElementById("status");
-
-let stream;
-let ids = [];
-let currentFront = null;
-let currentBack = null;
-let isFront = true;
-
-// START CAMERA (only once)
-document.getElementById("startBtn").onclick = async () => {
-  if(stream) return;
-
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:"environment" },
-      audio:false
-    });
-
-    video.srcObject = stream;
-    await video.play();
-
-    statusText.innerText = "Status: Capture FRONT side";
-
-  }catch(err){
-    statusText.innerText = "Camera Error: " + err.message;
-  }
-};
-
-// CAPTURE
-document.getElementById("captureBtn").onclick = () => {
-
-  if(!stream){
-    statusText.innerText = "Start camera first";
-    return;
-  }
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video,0,0);
-
-  const image = canvas.toDataURL("image/jpeg",1.0);
-
-  if(isFront){
-    currentFront = image;
-    isFront = false;
-    statusText.innerText = "Status: Now capture BACK side";
-  }else{
-    currentBack = image;
-    isFront = true;
-    statusText.innerText = "Status: Both sides captured. Press Next ID";
-  }
-};
-
-// SAVE ID
-document.getElementById("nextBtn").onclick = () => {
-  if(currentFront && currentBack){
-    ids.push({front:currentFront, back:currentBack});
-    currentFront = null;
-    currentBack = null;
-    statusText.innerText = "Status: Capture FRONT side of next ID";
-  }else{
-    statusText.innerText = "Capture both sides first";
-  }
-};
-
-// GENERATE PDF
-document.getElementById("completeBtn").onclick = () => {
-
-  if(currentFront && currentBack){
-    ids.push({front:currentFront, back:currentBack});
-  }
-
-  if(ids.length === 0){
-    statusText.innerText = "No IDs scanned";
-    return;
-  }
-
- const { jsPDF } = window.jspdf;
-
-// Custom page size (ID ratio)
-const pageWidth = 210; // mm
-const pageHeight = pageWidth / 1.586;
-
-const pdf = new jsPDF({
-  orientation: "portrait",
-  unit: "mm",
-  format: [pageWidth, pageHeight]
-});
-
-ids.forEach((id, index) => {
-
-  if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
-
-  // Slight zoom crop (5%)
-  function zoomImage(imgData) {
-    const img = new Image();
-    img.src = imgData;
-
-    const tempCanvas = document.createElement("canvas");
-    const ctx = tempCanvas.getContext("2d");
-
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-
-    const zoom = 0.95;
-    const sw = canvas.width * zoom;
-    const sh = canvas.height * zoom;
-    const sx = (canvas.width - sw) / 2;
-    const sy = (canvas.height - sh) / 2;
-
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-    return tempCanvas.toDataURL("image/jpeg", 1.0);
-  }
-
-  const frontImg = id.front;
-  const backImg = id.back;
-
-  pdf.addImage(frontImg, "JPEG", 0, 0, pageWidth, pageHeight / 2);
-  pdf.addImage(backImg, "JPEG", 0, pageHeight / 2, pageWidth, pageHeight / 2);
-
-});
-
-pdf.save("ID_Cards.pdf");
-  statusText.innerText = "PDF Generated Successfully";
-};
-</script>
-
+      pdf.save("IDCards.pdf");
+    }
+  </script>
 </body>
 </html>
