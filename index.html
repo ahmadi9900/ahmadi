@@ -85,7 +85,7 @@
     let cards = [];
 
     const ID_RATIO = 1.586; 
-    const ID_WIDTH = 1200;   // 🔥 HIGH RESOLUTION
+    const ID_WIDTH = 1200;   // High resolution capture
     const ID_HEIGHT = Math.round(ID_WIDTH / ID_RATIO);
     canvas.width = ID_WIDTH;
     canvas.height = ID_HEIGHT;
@@ -215,7 +215,7 @@
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
       processImage();
 
-      const imageData = canvas.toDataURL("image/png"); // 🔥 PNG = no quality loss
+      const imageData = canvas.toDataURL("image/jpeg", 0.85);
 
       if (captureStep === 0) {
         currentCard.front = imageData;
@@ -261,12 +261,12 @@
         const x = (pageWidth - imgWidth) / 2;
         const yFront = 30;
 
-        pdf.addImage(card.front, "PNG", x, yFront, imgWidth, imgHeight);
-        pdf.addImage(card.back, "PNG", x, yFront + imgHeight + 25, imgWidth, imgHeight);
+        pdf.addImage(card.front, "JPEG", x, yFront, imgWidth, imgHeight);
+        pdf.addImage(card.back, "JPEG", x, yFront + imgHeight + 25, imgWidth, imgHeight);
       });
 
-      pdf.save("IDCards_HQ.pdf");
-      status.textContent = "High-quality PDF generated.";
+      pdf.save("IDCards_Optimized.pdf");
+      status.textContent = "Optimized high-quality PDF generated.";
       cards = [];
     };
   </script>
