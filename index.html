@@ -153,38 +153,34 @@ document.getElementById("completeBtn").onclick = () => {
   const pdf = new jsPDF("p","mm","a4");
 
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
 
   ids.forEach((id,index)=>{
 
     if(index !== 0) pdf.addPage();
 
-    function addImageWithRatio(imgData, topY){
+    const imgRatio = canvas.width / canvas.height;
 
-      const imgRatio = canvas.width / canvas.height;
+    // 🔹 Smaller size (65% width)
+    const imgWidth = pageWidth * 0.65;
+    const imgHeight = imgWidth / imgRatio;
 
-      // Balanced size (NOT too big)
-      let imgWidth = pageWidth * 0.8;  // 80% width
-      let imgHeight = imgWidth / imgRatio;
+    const centerX = (pageWidth - imgWidth) / 2;
 
-      // If too tall, resize to fit half page
-      const maxHeight = (pageHeight / 2) - 20;
+    const topMargin = 30;        // space from top
+    const gapBetween = 25;       // space between front & back
 
-      if(imgHeight > maxHeight){
-        imgHeight = maxHeight;
-        imgWidth = imgHeight * imgRatio;
-      }
+    // FRONT
+    pdf.addImage(id.front, "JPEG", centerX, topMargin, imgWidth, imgHeight);
 
-      const x = (pageWidth - imgWidth) / 2;
-
-      pdf.addImage(imgData, "JPEG", x, topY, imgWidth, imgHeight);
-    }
-
-    // Add front
-    addImageWithRatio(id.front, 20);
-
-    // Add back with proper spacing
-    addImageWithRatio(id.back, pageHeight / 2 + 10);
+    // BACK (below front with fixed gap)
+    pdf.addImage(
+      id.back,
+      "JPEG",
+      centerX,
+      topMargin + imgHeight + gapBetween,
+      imgWidth,
+      imgHeight
+    );
 
   });
 
