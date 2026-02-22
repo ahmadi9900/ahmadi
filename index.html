@@ -80,6 +80,64 @@ let currentBack = null;
 let isFront = true;
 
 // START CAMERA (only once)
+document.getElementById("startBtn").onclick = async () => {
+  if(stream) return;
+
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"environment" },
+      audio:false
+    });
+
+    video.srcObject = stream;
+    await video.play();
+
+    statusText.innerText = "Status: Capture FRONT side";
+
+  }catch(err){
+    statusText.innerText = "Camera Error: " + err.message;
+  }
+};
+
+// CAPTURE
+document.getElementById("captureBtn").onclick = () => {
+
+  if(!stream){
+    statusText.innerText = "Start camera first";
+    return;
+  }
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video,0,0);
+
+  const image = canvas.toDataURL("image/png");
+
+  if(isFront){
+    currentFront = image;
+    isFront = false;
+    statusText.innerText = "Status: Now capture BACK side";
+  }else{
+    currentBack = image;
+    isFront = true;
+    statusText.innerText = "Status: Both sides captured. Press Next ID";
+  }
+};
+
+// SAVE ID
+document.getElementById("nextBtn").onclick = () => {
+  if(currentFront && currentBack){
+    ids.push({front:currentFront, back:currentBack});
+    currentFront = null;
+    currentBack = null;
+    statusText.innerText = "Status: Capture FRONT side of next ID";
+  }else{
+    statusText.innerText = "Capture both sides first";
+  }
+};
+
+// GENERATE PDF
 document.getElementById("completeBtn").onclick = () => {
 
   if(currentFront && currentBack){
