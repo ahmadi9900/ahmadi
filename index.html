@@ -13,7 +13,6 @@
       margin: 10px; 
     }
     canvas { display:none; }
-    button { margin: 5px; padding: 10px 20px; font-size: 16px; }
     #status { margin-top: 15px; font-weight: bold; }
     #overlay {
       position: absolute;
@@ -24,22 +23,79 @@
       display: inline-block;
       position: relative;
     }
+
+    /* Button Styling */
+    .button-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 15px;
+      gap: 10px;
+    }
+    button { 
+      padding: 12px 24px; 
+      font-size: 16px; 
+      border: none; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      background: #3498db; 
+      color: #fff; 
+      transition: all 0.3s ease;
+      min-width: 120px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+    button:hover { 
+      background: #2980b9; 
+      transform: translateY(-2px);
+    }
+    button:active {
+      background: #1f5a7a;
+      transform: translateY(0);
+    }
+    #startCamera {
+      background: #27ae60;
+    }
+    #startCamera:hover {
+      background: #1e8449;
+    }
+    #capture {
+      background: #e67e22;
+    }
+    #capture:hover {
+      background: #ca6f1e;
+    }
+    #nextId {
+      background: #9b59b6;
+    }
+    #nextId:hover {
+      background: #7d3c98;
+    }
+    #complete {
+      background: #c0392b;
+    }
+    #complete:hover {
+      background: #922b21;
+    }
   </style>
 </head>
 <body>
   <h1>ID Card Scanner</h1>
-  <button id="startCamera">Start Camera</button><br>
+  <div class="button-group">
+    <button id="startCamera">Start Camera</button>
+  </div>
   
   <div class="video-container">
     <video id="video" autoplay playsinline></video>
     <div id="overlay"></div>
   </div>
   
-  <canvas id="canvas"></canvas><br>
+  <canvas id="canvas"></canvas>
   
-  <button id="capture">Capture</button>
-  <button id="nextId">Next ID</button>
-  <button id="complete">Complete</button>
+  <div class="button-group">
+    <button id="capture">Capture</button>
+    <button id="nextId">Next ID</button>
+    <button id="complete">Complete</button>
+  </div>
   
   <div id="status">Status: Camera not started</div>
 
@@ -125,7 +181,6 @@
       ctx.putImageData(output, 0, 0);
     }
 
-    // Capture with stronger scanner-like effect
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
@@ -142,12 +197,10 @@
         sy = (video.videoHeight - sHeight) / 2;
       }
 
-      // Apply stronger scanner-like filter
       ctx.filter = "contrast(2.5) brightness(1.8) grayscale(0.6)";
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none";
 
-      // Apply sharpening
       sharpen(ctx, canvas.width, canvas.height);
 
       const imageData = canvas.toDataURL("image/jpeg", 0.95);
@@ -195,17 +248,4 @@
 
         const xFront = (pageWidth - imgWidth) / 2;
         const yFront = 30;
-        pdf.addImage(card.front, "JPEG", xFront, yFront, imgWidth, imgHeight);
-
-        const xBack = (pageWidth - imgWidth) / 2;
-        const yBack = yFront + imgHeight + 25;
-        pdf.addImage(card.back, "JPEG", xBack, yBack, imgWidth, imgHeight);
-      });
-
-      pdf.save("IDCards.pdf");
-      status.textContent = "PDF generated with " + cards.length + " ID cards.";
-      cards = [];
-    };
-  </script>
-</body>
-</html>
+        pdf.addImage(card.front, "JPEG", xFront, yFront, imgWidth, imgHeight
