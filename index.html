@@ -194,17 +194,39 @@ document.getElementById("completeBtn").onclick = () => {
   });
 
   ids.forEach((id, index) => {
-    if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
+  if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
 
-    // Center horizontally
-    const x = (pageWidth - cardWidth) / 2;
+  // FRONT SIDE
+  const frontImg = new Image();
+  frontImg.src = id.front;
+  frontImg.onload = () => {
+    const frontRatio = frontImg.width / frontImg.height;
+    const targetWidth = cardWidth;
+    const targetHeight = cardWidth / frontRatio;
 
-    // Front side
-    pdf.addImage(id.front, "JPEG", x, 20, cardWidth, cardHeight);
+    const x = (pageWidth - targetWidth) / 2;
+    pdf.addImage(id.front, "JPEG", x, 20, targetWidth, targetHeight);
 
-    // Back side below
-    pdf.addImage(id.back, "JPEG", x, 20 + cardHeight + 20, cardWidth, cardHeight);
-  });
+    // BACK SIDE
+    const backImg = new Image();
+    backImg.src = id.back;
+    backImg.onload = () => {
+      const backRatio = backImg.width / backImg.height;
+      const backWidth = cardWidth;
+      const backHeight = cardWidth / backRatio;
+
+      const xBack = (pageWidth - backWidth) / 2;
+      pdf.addImage(id.back, "JPEG", xBack, 20 + targetHeight + 20, backWidth, backHeight);
+
+      // Save after last ID
+      if (index === ids.length - 1) {
+        pdf.save("ID_Cards.pdf");
+        statusText.innerText = "PDF Generated Successfully";
+      }
+    };
+  };
+});
+
 
   pdf.save("ID_Cards.pdf");
   statusText.innerText = "PDF Generated Successfully";
