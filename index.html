@@ -138,6 +138,7 @@ document.getElementById("nextBtn").onclick = () => {
 };
 
 // GENERATE PDF
+<script>
 document.getElementById("completeBtn").onclick = () => {
 
   if(currentFront && currentBack){
@@ -151,42 +152,25 @@ document.getElementById("completeBtn").onclick = () => {
 
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("p","mm","a4");
+
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 10; // margin around the images
+  const cardWidthMM = 90; // slightly bigger than real ID width
+  const cardHeightMM = 55; // slightly bigger than real ID height
+  const centerX = (pageWidth - cardWidthMM)/2;
 
   ids.forEach((id,index)=>{
     if(index !== 0) pdf.addPage();
 
-    // Helper to add image with aspect ratio preserved
-    const addImg = (imgData, yPos) => {
-      const img = new Image();
-      img.src = imgData;
-      img.onload = () => {
-        const ratio = img.width / img.height;
-        const maxWidth = pageWidth - margin*2;
-        const maxHeight = (pageHeight - margin*3) / 2; // 2 images per page
-        let w = maxWidth;
-        let h = w / ratio;
+    // FRONT
+    pdf.addImage(id.front, "JPEG", centerX, 40, cardWidthMM, cardHeightMM);
 
-        if(h > maxHeight){
-          h = maxHeight;
-          w = h * ratio;
-        }
-
-        pdf.addImage(imgData, "JPEG", (pageWidth - w)/2, yPos, w, h);
-      };
-    };
-
-    addImg(id.front, margin);         // top image
-    addImg(id.back, pageHeight/2);    // bottom image
+    // BACK
+    pdf.addImage(id.back, "JPEG", centerX, 40 + cardHeightMM + 10, cardWidthMM, cardHeightMM);
   });
 
-  // Wait a little before saving so images load
-  setTimeout(()=>{
-    pdf.save("ID_Cards.pdf");
-    statusText.innerText = "PDF Generated Successfully";
-  }, 500);
+  pdf.save("ID_Cards.pdf");
+  statusText.innerText = "PDF Generated Successfully";
 };
 </script>
 
