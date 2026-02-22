@@ -101,34 +101,50 @@
 
     // Capture with automatic ID card ratio crop
     document.getElementById('capture').onclick = () => {
-      const videoRatio = video.videoWidth / video.videoHeight;
-      let sx, sy, sWidth, sHeight;
+  const videoRatio = video.videoWidth / video.videoHeight;
+  let sx, sy, sWidth, sHeight;
 
-      if (videoRatio > ID_RATIO) {
-        sHeight = video.videoHeight;
-        sWidth = sHeight * ID_RATIO;
-        sx = (video.videoWidth - sWidth) / 2;
-        sy = 0;
-      } else {
-        sWidth = video.videoWidth;
-        sHeight = sWidth / ID_RATIO;
-        sx = 0;
-        sy = (video.videoHeight - sHeight) / 2;
-      }
+  if (videoRatio > ID_RATIO) {
+    sHeight = video.videoHeight;
+    sWidth = sHeight * ID_RATIO;
+    sx = (video.videoWidth - sWidth) / 2;
+    sy = 0;
+  } else {
+    sWidth = video.videoWidth;
+    sHeight = sWidth / ID_RATIO;
+    sx = 0;
+    sy = (video.videoHeight - sHeight) / 2;
+  }
 
-      ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL("image/jpeg", 0.9);
+  // Apply scanner-like filter
+  ctx.filter = "contrast(1.4) brightness(1.1) grayscale(0.3)";
+  ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+  ctx.filter = "none";
 
-      if (captureStep === 0) {
-        currentCard.front = imageData;
-        status.textContent = "Front side captured. Now scan back side.";
-        captureStep = 1;
-      } else {
-        currentCard.back = imageData;
-        status.textContent = "Back side captured. Click Next ID or Complete.";
-        captureStep = 0;
-      }
-    };
+  // Optional sharpening effect
+  const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageDataObj.data;
+  for (let i = 0; i < data.length; i += 4) {
+    // simple sharpening by exaggerating differences
+    data[i] = Math.min(255, data[i] * 1.05);     // Red
+    data[i+1] = Math.min(255, data[i+1] * 1.05); // Green
+    data[i+2] = Math.min(255, data[i+2] * 1.05); // Blue
+  }
+  ctx.putImageData(imageDataObj, 0, 0);
+
+  const imageData = canvas.toDataURL("image/jpeg", 0.95);
+
+  if (captureStep === 0) {
+    currentCard.front = imageData;
+    status.textContent = "Front side captured. Now scan back side.";
+    captureStep = 1;
+  } else {
+    currentCard.back = imageData;
+    status.textContent = "Back side captured. Click Next ID or Complete.";
+    captureStep = 0;
+  }
+};
+
 
     // Save card and reset for next
     document.getElementById('nextId').onclick = () => {
