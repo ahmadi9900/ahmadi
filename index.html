@@ -99,20 +99,22 @@
       }
     };
 
-    // Capture exactly inside overlay area
+    // Capture with automatic ID card ratio crop
     document.getElementById('capture').onclick = () => {
-      const overlayRect = overlay.getBoundingClientRect();
-      const videoRect = video.getBoundingClientRect();
+      const videoRatio = video.videoWidth / video.videoHeight;
+      let sx, sy, sWidth, sHeight;
 
-      // Scale between displayed video and actual resolution
-      const scaleX = video.videoWidth / videoRect.width;
-      const scaleY = video.videoHeight / videoRect.height;
-
-      // Translate overlay coords into video coords
-      const sx = (overlayRect.left - videoRect.left) * scaleX;
-      const sy = (overlayRect.top - videoRect.top) * scaleY;
-      const sWidth = overlayRect.width * scaleX;
-      const sHeight = overlayRect.height * scaleY;
+      if (videoRatio > ID_RATIO) {
+        sHeight = video.videoHeight;
+        sWidth = sHeight * ID_RATIO;
+        sx = (video.videoWidth - sWidth) / 2;
+        sy = 0;
+      } else {
+        sWidth = video.videoWidth;
+        sHeight = sWidth / ID_RATIO;
+        sx = 0;
+        sy = (video.videoHeight - sHeight) / 2;
+      }
 
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
       const imageData = canvas.toDataURL("image/jpeg", 0.9);
