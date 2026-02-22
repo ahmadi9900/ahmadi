@@ -25,7 +25,6 @@
       margin-bottom: 25px;
     }
 
-    /* Vertical button layout below scan area */
     .button-column {
       display: flex;
       flex-direction: column;
@@ -64,7 +63,6 @@
   
   <canvas id="canvas"></canvas>
   
-  <!-- Buttons below scan area -->
   <div class="button-column">
     <button id="startCamera">Start Camera</button>
     <button id="capture">Capture</button>
@@ -123,6 +121,24 @@
       }
     };
 
+    // Pixel-level processing for scanner effect
+    function processImage() {
+      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        // Brightness boost
+        data[i]   = Math.min(255, data[i]   * 1.8 + 80); // Red
+        data[i+1] = Math.min(255, data[i+1] * 1.8 + 80); // Green
+        data[i+2] = Math.min(255, data[i+2] * 1.8 + 80); // Blue
+
+        // Contrast / threshold for black & white
+        data[i]   = data[i]   > 150 ? 255 : 0;
+        data[i+1] = data[i+1] > 150 ? 255 : 0;
+        data[i+2] = data[i+2] > 150 ? 255 : 0;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
@@ -139,10 +155,10 @@
         sy = (video.videoHeight - sHeight) / 2;
       }
 
-      // Apply strong scanner-like filter
-      ctx.filter = "contrast(4.0) brightness(2.5) grayscale(0.8)";
       ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
-      ctx.filter = "none";
+
+      // Apply scanner-like processing
+      processImage();
 
       const imageData = canvas.toDataURL("image/jpeg", 0.95);
 
