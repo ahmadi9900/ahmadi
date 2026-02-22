@@ -150,13 +150,9 @@ document.getElementById("completeBtn").onclick = () => {
 
   const { jsPDF } = window.jspdf;
 
-  // Standard ID card ratio (≈85.6mm x 54mm)
-  const cardWidth = 85.6;
-  const cardHeight = 54;
-
-  // Page size: enough space for both sides stacked
-  const pageWidth = 120;   // wider than card for centering
-  const pageHeight = (cardHeight * 2) + 60; // front + back + margins
+  // Page size: tall enough for both sides stacked
+  const pageWidth = 120;   // mm
+  const pageHeight = 200;  // mm
 
   const pdf = new jsPDF({
     orientation: "portrait",
@@ -167,14 +163,34 @@ document.getElementById("completeBtn").onclick = () => {
   ids.forEach((id, index) => {
     if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
 
-    // Center horizontally
-    const x = (pageWidth - cardWidth) / 2;
+    // Function to add image with preserved aspect ratio
+    function addCenteredImage(imgData, yPos, maxWidth, maxHeight) {
+      const img = new Image();
+      img.src = imgData;
 
-    // Front side
-    pdf.addImage(id.front, "JPEG", x, 20, cardWidth, cardHeight);
+      // Use natural image dimensions
+      const imgWidth = img.width;
+      const imgHeight = img.height;
+      const ratio = imgWidth / imgHeight;
+
+      let drawWidth = maxWidth;
+      let drawHeight = drawWidth / ratio;
+
+      // If too tall, shrink by height instead
+      if (drawHeight > maxHeight) {
+        drawHeight = maxHeight;
+        drawWidth = drawHeight * ratio;
+      }
+
+      const x = (pageWidth - drawWidth) / 2; // center horizontally
+      pdf.addImage(imgData, "JPEG", x, yPos, drawWidth, drawHeight);
+    }
+
+    // Front side at top
+    addCenteredImage(id.front, 20, pageWidth - 40, (pageHeight/2) - 30);
 
     // Back side below
-    pdf.addImage(id.back, "JPEG", x, 20 + cardHeight + 20, cardWidth, cardHeight);
+    addCenteredImage(id.back, (pageHeight/2) + 10, pageWidth - 40, (pageHeight/2) - 30);
   });
 
   pdf.save("ID_Cards.pdf");
