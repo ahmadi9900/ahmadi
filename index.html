@@ -149,54 +149,62 @@ document.getElementById("completeBtn").onclick = () => {
     return;
   }
 
- const { jsPDF } = window.jspdf;
+  const { jsPDF } = window.jspdf;
 
-// Custom page size (ID ratio)
-const pageWidth = 210; // mm
-const pageHeight = pageWidth / 1.586;
+  // A4 page size (or you can keep ID size if you prefer)
+  const pageWidth = 210; // mm
+  const pageHeight = 297; // mm
+  const gap = 5; // mm gap between front and back
 
-const pdf = new jsPDF({
-  orientation: "portrait",
-  unit: "mm",
-  format: [pageWidth, pageHeight]
-});
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: [pageWidth, pageHeight]
+  });
 
-ids.forEach((id, index) => {
+  ids.forEach((id, index) => {
+    if (index !== 0) pdf.addPage();
 
-  if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
+    const margin = 10; // mm margin around
+    const availableWidth = pageWidth - 2 * margin;
+    const availableHeight = (pageHeight - 3 * gap) / 2; // space for each image
 
-  // Slight zoom crop (5%)
-  function zoomImage(imgData) {
-    const img = new Image();
-    img.src = imgData;
+    // Create Image objects to get natural width/height
+    const frontImg = new Image();
+    frontImg.src = id.front;
+    const backImg = new Image();
+    backImg.src = id.back;
 
-    const tempCanvas = document.createElement("canvas");
-    const ctx = tempCanvas.getContext("2d");
+    frontImg.onload = () => {
+      backImg.onload = () => {
 
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
+        // Function to scale image while keeping aspect ratio
+        function getScaledDimensions(img, maxWidth, maxHeight) {
+          const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+          return { width: img.width * ratio, height: img.height * ratio };
+        }
 
-    const zoom = 0.95;
-    const sw = canvas.width * zoom;
-    const sh = canvas.height * zoom;
-    const sx = (canvas.width - sw) / 2;
-    const sy = (canvas.height - sh) / 2;
+        const frontDim = getScaledDimensions(frontImg, availableWidth, availableHeight);
+        const backDim = getScaledDimensions(backImg, availableWidth, availableHeight);
 
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        // Center the images
+        const frontX = (pageWidth - frontDim.width) / 2;
+        const frontY = margin;
+        const backX = (pageWidth - backDim.width) / 2;
+        const backY = frontY + frontDim.height + gap;
 
-    return tempCanvas.toDataURL("image/jpeg", 1.0);
-  }
+        pdf.addImage(frontImg, "JPEG", frontX, frontY, frontDim.width, frontDim.height);
+        pdf.addImage(backImg, "JPEG", backX, backY, backDim.width, backDim.height);
 
-  const frontImg = id.front;
-  const backImg = id.back;
+        // Save PDF after all images loaded
+        if(index === ids.length -1){
+          pdf.save("ID_Cards.pdf");
+          statusText.innerText = "PDF Generated Successfully";
+        }
+      }
+    }
+  });
 
-  pdf.addImage(frontImg, "JPEG", 0, 0, pageWidth, pageHeight / 2);
-  pdf.addImage(backImg, "JPEG", 0, pageHeight / 2, pageWidth, pageHeight / 2);
-
-});
-
-pdf.save("ID_Cards.pdf");
-  statusText.innerText = "PDF Generated Successfully";
 };
 </script>
 
