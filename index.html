@@ -152,10 +152,35 @@ document.getElementById("completeBtn").onclick = () => {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("p","mm","a4");
 
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
   ids.forEach((id,index)=>{
+
     if(index !== 0) pdf.addPage();
-    pdf.addImage(id.front,"JPEG",10,20,190,60);
-    pdf.addImage(id.back,"JPEG",10,100,190,60);
+
+    function addImageWithRatio(imgData, yPosition){
+
+      const img = new Image();
+      img.src = imgData;
+
+      // Original image ratio
+      const imgRatio = canvas.width / canvas.height;
+
+      // Make it big but keep ratio
+      let imgWidth = pageWidth * 0.9; // 90% of page width
+      let imgHeight = imgWidth / imgRatio;
+
+      // Center horizontally
+      const x = (pageWidth - imgWidth) / 2;
+
+      pdf.addImage(imgData, "JPEG", x, yPosition, imgWidth, imgHeight);
+    }
+
+    // Slight zoom is naturally done by making it bigger (90%)
+    addImageWithRatio(id.front, 20);
+    addImageWithRatio(id.back, pageHeight / 2);
+
   });
 
   pdf.save("ID_Cards.pdf");
