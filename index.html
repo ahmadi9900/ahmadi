@@ -35,14 +35,16 @@
     let cards = [];
 
     document.getElementById('startCamera').onclick = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        status.textContent = "Status: Camera started";
-      } catch (err) {
-        status.textContent = "Error: " + err.message;
-      }
-    };
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { exact: "environment" } } // forces back camera
+    });
+    video.srcObject = stream;
+    status.textContent = "Status: Back camera started";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  }
+};
 
     document.getElementById('capture').onclick = () => {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
