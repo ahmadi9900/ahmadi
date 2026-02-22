@@ -4,114 +4,114 @@
   <meta charset="UTF-8">
   <title>ID Card Scanner</title>
   <style>
-  body {
-    margin: 0;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px 15px;
-  }
-
-  h1 {
-    color: #ffffff;
-    margin-bottom: 25px;
-    font-weight: 600;
-    letter-spacing: 1px;
-  }
-
-  .video-container {
-    position: relative;
-    background: #ffffff;
-    padding: 20px;
-    border-radius: 18px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
-    margin-bottom: 30px;
-  }
-
-  video {
-    width: 400px;
-    height: 252px;
-    object-fit: cover;
-    border-radius: 12px;
-    border: 2px solid #eee;
-  }
-
-  canvas { display: none; }
-
-  #overlay {
-    position: absolute;
-    border: 3px dashed #ff4d4d;
-    border-radius: 12px;
-    pointer-events: none;
-  }
-
-  .button-column {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-    width: 100%;
-    max-width: 320px;
-  }
-
-  button {
-    width: 100%;
-    padding: 18px;
-    font-size: 18px;
-    font-weight: 600;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    color: white;
-    transition: all 0.25s ease;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-  }
-
-  button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.35);
-  }
-
-  button:active {
-    transform: scale(0.98);
-  }
-
-  #startCamera {
-    background: linear-gradient(135deg, #00c853, #009624);
-  }
-
-  #capture {
-    background: linear-gradient(135deg, #ff9800, #ef6c00);
-  }
-
-  #nextId {
-    background: linear-gradient(135deg, #7e57c2, #512da8);
-  }
-
-  #complete {
-    background: linear-gradient(135deg, #e53935, #b71c1c);
-  }
-
-  #status {
-    margin-top: 25px;
-    background: rgba(255,255,255,0.15);
-    padding: 12px 20px;
-    border-radius: 12px;
-    color: #ffffff;
-    font-weight: 500;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  }
-
-  @media (max-width: 480px) {
-    video {
-      width: 100%;
-      height: auto;
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 15px;
     }
-  }
-</style>
+
+    h1 {
+      color: #ffffff;
+      margin-bottom: 25px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .video-container {
+      position: relative;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 18px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+      margin-bottom: 30px;
+    }
+
+    video {
+      width: 400px;
+      height: 252px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 2px solid #eee;
+    }
+
+    canvas { display: none; }
+
+    #overlay {
+      position: absolute;
+      border: 3px dashed #ff4d4d;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .button-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      font-size: 18px;
+      font-weight: 600;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      color: white;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    button:hover {
+      box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+    }
+
+    button:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    #startCamera {
+      background: linear-gradient(135deg, #00c853, #009624);
+    }
+
+    #capture {
+      background: linear-gradient(135deg, #ff9800, #ef6c00);
+    }
+
+    #nextId {
+      background: linear-gradient(135deg, #7e57c2, #512da8);
+    }
+
+    #complete {
+      background: linear-gradient(135deg, #e53935, #b71c1c);
+    }
+
+    #status {
+      margin-top: 25px;
+      background: rgba(255,255,255,0.15);
+      padding: 12px 20px;
+      border-radius: 12px;
+      color: #ffffff;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 480px) {
+      video {
+        width: 100%;
+        height: auto;
+      }
+    }
+  </style>
 </head>
 <body>
   <h1>ID Card Scanner</h1>
@@ -330,6 +330,16 @@
       status.textContent = "Optimized high-quality PDF generated.";
       cards = [];
     };
+
+    // Instant click flash effect for fast-feel
+    document.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        btn.style.filter = "brightness(1.2)";
+        setTimeout(() => {
+          btn.style.filter = "brightness(1)";
+        }, 100);
+      });
+    });
   </script>
 </body>
 </html>
