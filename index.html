@@ -139,7 +139,6 @@ document.getElementById("nextBtn").onclick = () => {
 
 // GENERATE PDF
 document.getElementById("completeBtn").onclick = () => {
-
   if(currentFront && currentBack){
     ids.push({front:currentFront, back:currentBack});
   }
@@ -149,55 +148,32 @@ document.getElementById("completeBtn").onclick = () => {
     return;
   }
 
- const { jsPDF } = window.jspdf;
+  const { jsPDF } = window.jspdf;
 
-// Custom page size (ID ratio)
-const pageWidth = 210; // mm
-const pageHeight = pageWidth / 1.586;
+  const cardWidth = 85.6; 
+  const cardHeight = 54; 
+  const pageWidth = cardWidth + 20;   
+  const pageHeight = (cardHeight * 2) + 40; 
 
-const pdf = new jsPDF({
-  orientation: "portrait",
-  unit: "mm",
-  format: [pageWidth, pageHeight]
-});
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: [pageWidth, pageHeight]
+  });
 
-ids.forEach((id, index) => {
+  ids.forEach((id, index) => {
+    if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
 
-  if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
+    const x = (pageWidth - cardWidth) / 2;
 
-  // Slight zoom crop (5%)
-  function zoomImage(imgData) {
-    const img = new Image();
-    img.src = imgData;
+    pdf.addImage(id.front, "JPEG", x, 20, cardWidth, cardHeight);
+    pdf.addImage(id.back, "JPEG", x, 20 + cardHeight + 10, cardWidth, cardHeight);
+  });
 
-    const tempCanvas = document.createElement("canvas");
-    const ctx = tempCanvas.getContext("2d");
-
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-
-    const zoom = 0.95;
-    const sw = canvas.width * zoom;
-    const sh = canvas.height * zoom;
-    const sx = (canvas.width - sw) / 2;
-    const sy = (canvas.height - sh) / 2;
-
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-    return tempCanvas.toDataURL("image/jpeg", 1.0);
-  }
-
-  const frontImg = id.front;
-  const backImg = id.back;
-
-  pdf.addImage(frontImg, "JPEG", 0, 0, pageWidth, pageHeight / 2);
-  pdf.addImage(backImg, "JPEG", 0, pageHeight / 2, pageWidth, pageHeight / 2);
-
-});
-
-pdf.save("ID_Cards.pdf");
+  pdf.save("ID_Cards.pdf");
   statusText.innerText = "PDF Generated Successfully";
 };
+
 </script>
 
 </body>
