@@ -159,27 +159,32 @@ document.getElementById("completeBtn").onclick = () => {
 
     if(index !== 0) pdf.addPage();
 
-    function addImageWithRatio(imgData, yPosition){
+    function addImageWithRatio(imgData, topY){
 
-      const img = new Image();
-      img.src = imgData;
-
-      // Original image ratio
       const imgRatio = canvas.width / canvas.height;
 
-      // Make it big but keep ratio
-      let imgWidth = pageWidth * 0.9; // 90% of page width
+      // Balanced size (NOT too big)
+      let imgWidth = pageWidth * 0.8;  // 80% width
       let imgHeight = imgWidth / imgRatio;
 
-      // Center horizontally
+      // If too tall, resize to fit half page
+      const maxHeight = (pageHeight / 2) - 20;
+
+      if(imgHeight > maxHeight){
+        imgHeight = maxHeight;
+        imgWidth = imgHeight * imgRatio;
+      }
+
       const x = (pageWidth - imgWidth) / 2;
 
-      pdf.addImage(imgData, "JPEG", x, yPosition, imgWidth, imgHeight);
+      pdf.addImage(imgData, "JPEG", x, topY, imgWidth, imgHeight);
     }
 
-    // Slight zoom is naturally done by making it bigger (90%)
+    // Add front
     addImageWithRatio(id.front, 20);
-    addImageWithRatio(id.back, pageHeight / 2);
+
+    // Add back with proper spacing
+    addImageWithRatio(id.back, pageHeight / 2 + 10);
 
   });
 
