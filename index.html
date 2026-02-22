@@ -7,7 +7,7 @@
     body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
     video { 
       width: 400px; 
-      height: 252px; /* 400 / 1.586 */
+      height: 252px; /* ID card ratio */
       object-fit: cover; 
       border: 1px solid #000; 
       margin: 10px; 
@@ -99,7 +99,7 @@
       }
     };
 
-    // Capture with correct ID card ratio
+    // Capture with automatic ID card ratio crop
     document.getElementById('capture').onclick = () => {
       const videoRatio = video.videoWidth / video.videoHeight;
       let sx, sy, sWidth, sHeight;
@@ -141,7 +141,7 @@
       }
     };
 
-    // Generate PDF
+    // Generate PDF with images stacked vertically
     document.getElementById('complete').onclick = () => {
       if (currentCard.front && currentCard.back) {
         cards.push(currentCard);
@@ -157,8 +157,22 @@
 
       cards.forEach((card, index) => {
         if (index > 0) pdf.addPage();
-        pdf.addImage(card.front, "JPEG", 10, 10, 90, 57); // maintain ratio
-        pdf.addImage(card.back, "JPEG", 110, 10, 90, 57);
+
+        // Larger size for clarity
+        const imgWidth = 150;
+        const imgHeight = imgWidth / ID_RATIO;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        // Center front image
+        const xFront = (pageWidth - imgWidth) / 2;
+        const yFront = 30;
+        pdf.addImage(card.front, "JPEG", xFront, yFront, imgWidth, imgHeight);
+
+        // Center back image below front
+        const xBack = (pageWidth - imgWidth) / 2;
+        const yBack = yFront + imgHeight + 20;
+        pdf.addImage(card.back, "JPEG", xBack, yBack, imgWidth, imgHeight);
       });
 
       pdf.save("IDCards.pdf");
