@@ -79,13 +79,13 @@ let currentFront = null;
 let currentBack = null;
 let isFront = true;
 
-// START CAMERA (only once)
+// START CAMERA
 document.getElementById("startBtn").onclick = async () => {
   if(stream) return;
 
   try{
     stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:"environment" },
+      video:{ facingMode:{ ideal:"environment" } },
       audio:false
     });
 
@@ -101,7 +101,6 @@ document.getElementById("startBtn").onclick = async () => {
 
 // CAPTURE
 document.getElementById("captureBtn").onclick = () => {
-
   if(!stream){
     statusText.innerText = "Start camera first";
     return;
@@ -137,6 +136,37 @@ document.getElementById("nextBtn").onclick = () => {
   }
 };
 
+// IMAGE PROCESSING (scanner-like effect)
+function processImage(imgData) {
+  const tempCanvas = document.createElement("canvas");
+  const ctx = tempCanvas.getContext("2d");
+  const img = new Image();
+  img.src = imgData;
+
+  tempCanvas.width = img.width;
+  tempCanvas.height = img.height;
+
+  ctx.drawImage(img, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+  const data = imageData.data;
+
+  const contrast = 1.2;   // >1 increases contrast
+  const brightness = 10;  // positive = lighter
+
+  for (let i = 0; i < data.length; i += 4) {
+    for (let j = 0; j < 3; j++) {
+      let value = data[i + j];
+      value = ((value - 128) * contrast) + 128; // contrast
+      value += brightness;                      // brightness
+      data[i + j] = Math.max(0, Math.min(255, value));
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return tempCanvas.toDataURL("image/jpeg", 1.0);
+}
+
 // GENERATE PDF
 document.getElementById("completeBtn").onclick = () => {
   if(currentFront && currentBack){
@@ -149,14 +179,8 @@ document.getElementById("completeBtn").onclick = () => {
   }
 
   const { jsPDF } = window.jspdf;
-
-  // Standard ID card ratio (≈85.6mm x 54mm)
-  const cardWidth = 85.6;
-  const cardHeight = 54;
-
-  // Page size: enough space for both sides stacked
-  const pageWidth = 120;   // wider than card for centering
-  const pageHeight = (cardHeight * 2) + 60; // front + back + margins
+  const pageWidth = 120;   // mm
+  const pageHeight = 200;  // mm
 
   const pdf = new jsPDF({
     orientation: "portrait",
@@ -164,23 +188,36 @@ document.getElementById("completeBtn").onclick = () => {
     format: [pageWidth, pageHeight]
   });
 
+  function addCenteredImage(imgData, yPos, maxWidth, maxHeight) {
+    const img = new Image();
+    img.src = imgData;
+    const ratio = img.width / img.height;
+
+    let drawWidth = maxWidth;
+    let drawHeight = drawWidth / ratio;
+
+    if (drawHeight > maxHeight) {
+      drawHeight = maxHeight;
+      drawWidth = drawHeight * ratio;
+    }
+
+    const x = (pageWidth - drawWidth) / 2;
+    pdf.addImage(imgData, "JPEG", x, yPos, drawWidth, drawHeight);
+  }
+
   ids.forEach((id, index) => {
     if (index !== 0) pdf.addPage([pageWidth, pageHeight]);
 
-    // Center horizontally
-    const x = (pageWidth - cardWidth) / 2;
+    const frontImg = processImage(id.front);
+    const backImg = processImage(id.back);
 
-    // Front side
-    pdf.addImage(id.front, "JPEG", x, 20, cardWidth, cardHeight);
-
-    // Back side below
-    pdf.addImage(id.back, "JPEG", x, 20 + cardHeight + 20, cardWidth, cardHeight);
+    addCenteredImage(frontImg, 20, pageWidth - 40, (pageHeight/2) - 30);
+    addCenteredImage(backImg, (pageHeight/2) + 10, pageWidth - 40, (pageHeight/2) - 30);
   });
 
   pdf.save("ID_Cards.pdf");
   statusText.innerText = "PDF Generated Successfully";
 };
-
 </script>
 
 </body>
