@@ -112,7 +112,7 @@ document.getElementById("captureBtn").onclick = () => {
   const ctx = canvas.getContext("2d");
   ctx.drawImage(video,0,0);
 
-  const image = canvas.toDataURL("image/jped",1.0);
+  const image = canvas.toDataURL("image/jpeg",1.0);
 
   if(isFront){
     currentFront = image;
@@ -137,7 +137,7 @@ document.getElementById("nextBtn").onclick = () => {
   }
 };
 
-// GENERATE PD
+// GENERATE PDF
 document.getElementById("completeBtn").onclick = () => {
 
   if(currentFront && currentBack){
