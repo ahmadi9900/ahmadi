@@ -349,17 +349,18 @@ document.getElementById('complete').onclick = () => {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("p","mm","a4");
 
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
   cards.forEach((card,index)=>{
     if(index>0) pdf.addPage();
 
-    const imgWidth=85;   // Safe width in mm
-    const imgHeight=imgWidth/ID_RATIO;
+    const imgWidth = pageWidth * 0.8;        // 80% of page width
+    const imgHeight = imgWidth / ID_RATIO;
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
     const x = (pageWidth - imgWidth)/2;
-
-    const yFront=40;
-    const yBack=yFront+imgHeight+20;
+    const yFront = 20;                       // top margin
+    const yBack = yFront + imgHeight + 15;   // space between front/back
 
     if(card.front) pdf.addImage(card.front,"JPEG",x,yFront,imgWidth,imgHeight);
     if(card.back) pdf.addImage(card.back,"JPEG",x,yBack,imgWidth,imgHeight);
