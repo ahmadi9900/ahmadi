@@ -50,11 +50,14 @@ const status=document.getElementById('status');
 
 let stream, captureStep=0, currentCard={}, cards=[];
 const ID_RATIO=1.586;
-const OUTPUT_WIDTH=1920;  // Full resolution for clarity
+const OUTPUT_WIDTH=1920;
 const OUTPUT_HEIGHT=Math.round(OUTPUT_WIDTH/ID_RATIO);
 canvas.width=OUTPUT_WIDTH; canvas.height=OUTPUT_HEIGHT;
 
-function waitForOpenCV(){ if(typeof cv!=="undefined"&&cv.getBuildInformation){ status.textContent="Status: Ready"; } else { setTimeout(waitForOpenCV,100); } }
+function waitForOpenCV(){ 
+  if(typeof cv!=="undefined" && cv.getBuildInformation){ status.textContent="Status: Ready"; } 
+  else{ setTimeout(waitForOpenCV,100); } 
+}
 waitForOpenCV();
 
 document.getElementById('startCamera').onclick=async()=>{
@@ -79,56 +82,65 @@ function autoCropProScan(){
   let biggest=null, maxArea=0;
   for(let i=0;i<contours.size();i++){
     let cnt=contours.get(i), area=cv.contourArea(cnt);
-    if(area>5000){ let peri=cv.arcLength(cnt,true), approx=new cv.Mat();
+    if(area>5000){ 
+      let peri=cv.arcLength(cnt,true), approx=new cv.Mat();
       cv.approxPolyDP(cnt, approx, 0.02*peri,true);
       if(approx.rows===4 && area>maxArea){ biggest=approx; maxArea=area; }
     }
   }
-  if(!biggest){ status.textContent="No card detected."; return null; }
 
-  let pts=[]; for(let i=0;i<4;i++) pts.push({x:biggest.intPtr(i,0)[0], y:biggest.intPtr(i,0)[1]});
-  pts.sort((a,b)=>a.y-b.y); let top=pts.slice(0,2).sort((a,b)=>a.x-b.x), bottom=pts.slice(2,4).sort((a,b)=>a.x-b.x), ordered=[top[0],top[1],bottom[1],bottom[0]];
-  
-  let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[ ordered[0].x,ordered[0].y, ordered[1].x,ordered[1].y, ordered[2].x,ordered[2].y, ordered[3].x,ordered[3].y]);
-  let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[0,0, OUTPUT_WIDTH,0, OUTPUT_WIDTH,OUTPUT_HEIGHT, 0,OUTPUT_HEIGHT]);
-  let M=cv.getPerspectiveTransform(srcTri,dstTri), dst=new cv.Mat();
-  cv.warpPerspective(src,dst,M,new cv.Size(OUTPUT_WIDTH,OUTPUT_HEIGHT));
+  let dst=new cv.Mat();
+  if(biggest){
+      // precise perspective
+      let pts=[]; for(let i=0;i<4;i++) pts.push({x:biggest.intPtr(i,0)[0], y:biggest.intPtr(i,0)[1]});
+      pts.sort((a,b)=>a.y-b.y); 
+      let top=pts.slice(0,2).sort((a,b)=>a.x-b.x), bottom=pts.slice(2,4).sort((a,b)=>a.x-b.x), ordered=[top[0],top[1],bottom[1],bottom[0]];
+      let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[ordered[0].x,ordered[0].y, ordered[1].x,ordered[1].y, ordered[2].x,ordered[2].y, ordered[3].x,ordered[3].y]);
+      let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[0,0, OUTPUT_WIDTH,0, OUTPUT_WIDTH,OUTPUT_HEIGHT,0,OUTPUT_HEIGHT]);
+      let M=cv.getPerspectiveTransform(srcTri,dstTri);
+      cv.warpPerspective(src,dst,M,dst.size()==0?new cv.Size(OUTPUT_WIDTH,OUTPUT_HEIGHT):dst.size());
+      srcTri.delete(); dstTri.delete(); M.delete();
+  } else {
+      // fallback: center crop
+      let cw=canvas.width, ch=canvas.height;
+      let w=Math.min(cw,ch*ID_RATIO), h=w/ID_RATIO, x=(cw-w)/2, y=(ch-h)/2;
+      let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[x,y,x+w,y,x+w,y+h,x,y+h]);
+      let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,OUTPUT_WIDTH,0,OUTPUT_WIDTH,OUTPUT_HEIGHT,0,OUTPUT_HEIGHT]);
+      let M=cv.getPerspectiveTransform(srcTri,dstTri);
+      cv.warpPerspective(src,dst,M,new cv.Size(OUTPUT_WIDTH,OUTPUT_HEIGHT));
+      srcTri.delete(); dstTri.delete(); M.delete();
+  }
 
-  // ===== Professional Scan Enhancement =====
+  // ===== Professional Enhancement =====
   let enhanced=new cv.Mat(), sharpened=new cv.Mat();
-  // Convert to gray for deep black text
-  cv.cvtColor(dst,enhanced,cv.COLOR_RGBA2GRAY);
-  // Apply adaptive histogram equalization (CLAHE) to enhance contrast
+  cv.cvtColor(dst, enhanced, cv.COLOR_RGBA2GRAY);
   let clahe=cv.createCLAHE(2.0,new cv.Size(8,8));
   clahe.apply(enhanced,enhanced);
-
-  // Sharpen
   let kernel=cv.matFromArray(3,3,cv.CV_32F,[0,-1,0,-1,5,-1,0,-1,0]);
   cv.filter2D(enhanced,sharpened,cv.CV_8U,kernel);
-
   cv.imshow(canvas,sharpened);
   let result=canvas.toDataURL("image/jpeg",0.98);
 
-  // Cleanup
+  // cleanup
   src.delete(); gray.delete(); blur.delete(); edge.delete(); contours.delete(); hierarchy.delete();
-  dst.delete(); enhanced.delete(); sharpened.delete(); srcTri.delete(); dstTri.delete(); M.delete(); kernel.delete(); clahe.delete();
+  dst.delete(); enhanced.delete(); sharpened.delete(); kernel.delete(); clahe.delete(); biggest && biggest.delete();
 
   return result;
 }
 
 document.getElementById('capture').onclick=()=>{
-  let imgData=autoCropProScan(); if(!imgData) return;
-  if(captureStep===0){ currentCard.front=imgData; captureStep=1; status.textContent="Front captured."; }
-  else{ currentCard.back=imgData; captureStep=0; status.textContent="Back captured."; }
+  let img=autoCropProScan(); if(!img) return;
+  if(captureStep===0){ currentCard.front=img; captureStep=1; status.textContent="Front captured."; }
+  else{ currentCard.back=img; captureStep=0; status.textContent="Back captured."; }
 };
 
 document.getElementById('nextId').onclick=()=>{
-  if(currentCard.front&&currentCard.back){ cards.push(currentCard); currentCard={}; status.textContent="Next ID ready."; }
+  if(currentCard.front && currentCard.back){ cards.push(currentCard); currentCard={}; status.textContent="Next ID ready."; }
   else{ status.textContent="Capture both sides first."; }
 };
 
 document.getElementById('complete').onclick=()=>{
-  if(currentCard.front&&currentCard.back){ cards.push(currentCard); currentCard={}; }
+  if(currentCard.front && currentCard.back){ cards.push(currentCard); currentCard={}; }
   if(cards.length===0){ status.textContent="No cards captured."; return; }
 
   const { jsPDF }=window.jspdf;
