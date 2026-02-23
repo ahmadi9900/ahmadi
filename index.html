@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
-/* ===== YOUR ORIGINAL STYLE (UNCHANGED) ===== */
 body {
   margin: 0;
   font-family: 'Segoe UI', Arial, sans-serif;
@@ -16,6 +15,7 @@ body {
   align-items: center;
   padding: 3vw;
 }
+
 h1 {
   color: #ffffff;
   margin-bottom: 5vw;
@@ -24,6 +24,7 @@ h1 {
   font-size: 6vw;
   text-align: center;
 }
+
 .video-container {
   position: relative;
   background: #ffffff;
@@ -34,6 +35,7 @@ h1 {
   width: 90vw;
   max-width: 500px;
 }
+
 video {
   width: 100%;
   height: auto;
@@ -41,13 +43,9 @@ video {
   border-radius: 3vw;
   border: 0.5vw solid #eee;
 }
+
 canvas { display:none; }
-#overlay {
-  position:absolute;
-  border:3px dashed #ff4d4d;
-  border-radius:3vw;
-  pointer-events:none;
-}
+
 .button-column {
   display:flex;
   flex-direction:column;
@@ -56,6 +54,7 @@ canvas { display:none; }
   width:90vw;
   max-width:400px;
 }
+
 button {
   width:100%;
   padding:4vw;
@@ -65,14 +64,16 @@ button {
   border-radius:3vw;
   cursor:pointer;
   color:white;
-  transition:transform .08s ease, box-shadow .08s ease;
-  box-shadow:0 2vw 5vw rgba(0,0,0,.2);
+  transition:transform .08s ease;
 }
+
 button:active { transform:scale(.95); }
+
 #startCamera { background:linear-gradient(135deg,#00c853,#009624); }
 #capture { background:linear-gradient(135deg,#ff9800,#ef6c00); }
 #nextId { background:linear-gradient(135deg,#7e57c2,#512da8); }
 #complete { background:linear-gradient(135deg,#e53935,#b71c1c); }
+
 #status {
   margin-top:5vw;
   background:rgba(255,255,255,.15);
@@ -84,6 +85,7 @@ button:active { transform:scale(.95); }
   text-align:center;
   font-size:4vw;
 }
+
 @media (min-width:600px){
   h1{font-size:28px}
   button{font-size:18px;padding:16px}
@@ -97,7 +99,6 @@ button:active { transform:scale(.95); }
 
 <div class="video-container">
   <video id="video" autoplay playsinline></video>
-  <div id="overlay"></div>
 </div>
 
 <canvas id="canvas"></canvas>
@@ -137,126 +138,133 @@ cv['onRuntimeInitialized'] = () => {
 };
 
 document.getElementById('startCamera').onclick = async () => {
-  stream = await navigator.mediaDevices.getUserMedia({
-    video:{facingMode:"environment"}
-  });
-  video.srcObject = stream;
-  status.textContent = "Camera started";
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"environment" }
+    });
+    video.srcObject = stream;
+    status.textContent = "Camera started";
+  } catch(err){
+    status.textContent = "Camera error: " + err.message;
+  }
 };
 
-function autoCropPerspective() {
+function autoCropPerspective(){
 
-  let src = cv.imread(video);
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+
+  let src = cv.imread(canvas);
   let gray = new cv.Mat();
-  let blurred = new cv.Mat();
-  let edged = new cv.Mat();
+  let blur = new cv.Mat();
+  let edge = new cv.Mat();
 
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, blurred, new cv.Size(5,5), 0);
-  cv.Canny(blurred, edged, 75, 200);
+  cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
+  cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
+  cv.Canny(blur,edge,75,200);
 
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
-  cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+  cv.findContours(edge,contours,hierarchy,cv.RETR_LIST,cv.CHAIN_APPROX_SIMPLE);
 
-  let biggest;
-  let maxArea = 0;
+  let biggest=null;
+  let maxArea=0;
 
-  for (let i=0; i<contours.size(); i++){
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    if(area > 5000){
-      let peri = cv.arcLength(cnt,true);
-      let approx = new cv.Mat();
-      cv.approxPolyDP(cnt, approx, 0.02*peri, true);
-      if(approx.rows === 4 && area > maxArea){
-        biggest = approx;
-        maxArea = area;
+  for(let i=0;i<contours.size();i++){
+    let cnt=contours.get(i);
+    let area=cv.contourArea(cnt);
+    if(area>5000){
+      let peri=cv.arcLength(cnt,true);
+      let approx=new cv.Mat();
+      cv.approxPolyDP(cnt,approx,0.02*peri,true);
+      if(approx.rows===4 && area>maxArea){
+        biggest=approx;
+        maxArea=area;
       }
     }
   }
 
   if(!biggest){
-    status.textContent = "No card detected. Try again.";
+    status.textContent="No card detected. Try again.";
+    src.delete();gray.delete();blur.delete();edge.delete();
+    contours.delete();hierarchy.delete();
     return null;
   }
 
-  let pts = [];
+  let pts=[];
   for(let i=0;i<4;i++){
     pts.push({
-      x: biggest.intPtr(i,0)[0],
-      y: biggest.intPtr(i,0)[1]
+      x:biggest.intPtr(i,0)[0],
+      y:biggest.intPtr(i,0)[1]
     });
   }
 
   pts.sort((a,b)=>a.y-b.y);
-  let top = pts.slice(0,2).sort((a,b)=>a.x-b.x);
-  let bottom = pts.slice(2,4).sort((a,b)=>a.x-b.x);
+  let top=pts.slice(0,2).sort((a,b)=>a.x-b.x);
+  let bottom=pts.slice(2,4).sort((a,b)=>a.x-b.x);
+  let ordered=[top[0],top[1],bottom[1],bottom[0]];
 
-  let ordered = [top[0], top[1], bottom[1], bottom[0]];
-
-  let srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[
+  let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[
     ordered[0].x,ordered[0].y,
     ordered[1].x,ordered[1].y,
     ordered[2].x,ordered[2].y,
     ordered[3].x,ordered[3].y
   ]);
 
-  let dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[
+  let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[
     0,0,
     OUTPUT_WIDTH,0,
     OUTPUT_WIDTH,OUTPUT_HEIGHT,
     0,OUTPUT_HEIGHT
   ]);
 
-  let M = cv.getPerspectiveTransform(srcTri,dstTri);
-  let dst = new cv.Mat();
+  let M=cv.getPerspectiveTransform(srcTri,dstTri);
+  let dst=new cv.Mat();
   cv.warpPerspective(src,dst,M,new cv.Size(OUTPUT_WIDTH,OUTPUT_HEIGHT));
 
   cv.imshow(canvas,dst);
 
-  src.delete(); gray.delete(); blurred.delete();
-  edged.delete(); contours.delete(); hierarchy.delete();
-  dst.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+  let result=canvas.toDataURL("image/jpeg",0.9);
 
-  return canvas.toDataURL("image/jpeg",0.9);
+  src.delete();gray.delete();blur.delete();edge.delete();
+  contours.delete();hierarchy.delete();
+  dst.delete();srcTri.delete();dstTri.delete();M.delete();
+
+  return result;
 }
 
-document.getElementById('capture').onclick = () => {
-
-  let imageData = autoCropPerspective();
+document.getElementById('capture').onclick=()=>{
+  let imageData=autoCropPerspective();
   if(!imageData) return;
 
-  if(captureStep === 0){
-    currentCard.front = imageData;
-    captureStep = 1;
-    status.textContent = "Front captured. Scan back side.";
+  if(captureStep===0){
+    currentCard.front=imageData;
+    captureStep=1;
+    status.textContent="Front captured. Scan back side.";
   }else{
-    currentCard.back = imageData;
-    captureStep = 0;
-    status.textContent = "Back captured.";
+    currentCard.back=imageData;
+    captureStep=0;
+    status.textContent="Back captured.";
   }
 };
 
-document.getElementById('nextId').onclick = () => {
+document.getElementById('nextId').onclick=()=>{
   if(currentCard.front && currentCard.back){
     cards.push(currentCard);
-    currentCard = {};
-    status.textContent = "Next ID ready.";
+    currentCard={};
+    status.textContent="Ready for next ID.";
   }else{
-    status.textContent = "Capture both sides first.";
+    status.textContent="Capture both sides first.";
   }
 };
 
-document.getElementById('complete').onclick = () => {
-
+document.getElementById('complete').onclick=()=>{
   if(currentCard.front && currentCard.back){
     cards.push(currentCard);
-    currentCard = {};
+    currentCard={};
   }
 
   if(cards.length===0){
-    status.textContent="No cards.";
+    status.textContent="No cards captured.";
     return;
   }
 
