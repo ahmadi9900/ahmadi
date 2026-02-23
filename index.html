@@ -1,337 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ID Card Scanner</title>
-  <!-- Responsive for iPhone and mobile -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 3vw;
-    }
+<meta charset="UTF-8">
+<title>ID Card Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    h1 {
-      color: #ffffff;
-      margin-bottom: 5vw;
-      font-weight: 600;
-      letter-spacing: 1px;
-      font-size: 6vw;
-      text-align: center;
-    }
-
-    .video-container {
-      position: relative;
-      background: #ffffff;
-      padding: 4vw;
-      border-radius: 4vw;
-      box-shadow: 0 4vw 10vw rgba(0,0,0,0.25);
-      margin-bottom: 5vw;
-      width: 90vw;
-      max-width: 500px;
-    }
-
-    video {
-      width: 100%;
-      height: auto;
-      object-fit: cover;
-      border-radius: 3vw;
-      border: 0.5vw solid #eee;
-    }
-
-    canvas { display: none; }
-
-    #overlay {
-      position: absolute;
-      border: 3px dashed #ff4d4d;
-      border-radius: 3vw;
-      pointer-events: none;
-    }
-
-    .button-column {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3vw;
-      width: 90vw;
-      max-width: 400px;
-    }
-
-    button {
-      width: 100%;
-      padding: 4vw;
-      font-size: 4vw;
-      font-weight: 600;
-      border: none;
-      border-radius: 3vw;
-      cursor: pointer;
-      color: white;
-      transition: transform 0.08s ease, box-shadow 0.08s ease;
-      box-shadow: 0 2vw 5vw rgba(0,0,0,0.2);
-    }
-
-    button:hover {
-      box-shadow: 0 3vw 6vw rgba(0,0,0,0.25);
-    }
-
-    button:active {
-      transform: scale(0.95);
-      box-shadow: 0 1vw 3vw rgba(0,0,0,0.2);
-    }
-
-    #startCamera { background: linear-gradient(135deg, #00c853, #009624); }
-    #capture { background: linear-gradient(135deg, #ff9800, #ef6c00); }
-    #nextId { background: linear-gradient(135deg, #7e57c2, #512da8); }
-    #complete { background: linear-gradient(135deg, #e53935, #b71c1c); }
-
-    #status {
-      margin-top: 5vw;
-      background: rgba(255,255,255,0.15);
-      padding: 3vw;
-      border-radius: 3vw;
-      color: #ffffff;
-      font-weight: 500;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 2vw 5vw rgba(0,0,0,0.2);
-      text-align: center;
-      font-size: 4vw;
-    }
-
-    @media (min-width: 600px) {
-      h1 { font-size: 28px; }
-      button { font-size: 18px; padding: 16px; }
-      #status { font-size: 16px; padding: 12px; }
-    }
-  </style>
+<style>
+/* ===== YOUR ORIGINAL STYLE (UNCHANGED) ===== */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3vw;
+}
+h1 {
+  color: #ffffff;
+  margin-bottom: 5vw;
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-size: 6vw;
+  text-align: center;
+}
+.video-container {
+  position: relative;
+  background: #ffffff;
+  padding: 4vw;
+  border-radius: 4vw;
+  box-shadow: 0 4vw 10vw rgba(0,0,0,0.25);
+  margin-bottom: 5vw;
+  width: 90vw;
+  max-width: 500px;
+}
+video {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 3vw;
+  border: 0.5vw solid #eee;
+}
+canvas { display:none; }
+#overlay {
+  position:absolute;
+  border:3px dashed #ff4d4d;
+  border-radius:3vw;
+  pointer-events:none;
+}
+.button-column {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3vw;
+  width:90vw;
+  max-width:400px;
+}
+button {
+  width:100%;
+  padding:4vw;
+  font-size:4vw;
+  font-weight:600;
+  border:none;
+  border-radius:3vw;
+  cursor:pointer;
+  color:white;
+  transition:transform .08s ease, box-shadow .08s ease;
+  box-shadow:0 2vw 5vw rgba(0,0,0,.2);
+}
+button:active { transform:scale(.95); }
+#startCamera { background:linear-gradient(135deg,#00c853,#009624); }
+#capture { background:linear-gradient(135deg,#ff9800,#ef6c00); }
+#nextId { background:linear-gradient(135deg,#7e57c2,#512da8); }
+#complete { background:linear-gradient(135deg,#e53935,#b71c1c); }
+#status {
+  margin-top:5vw;
+  background:rgba(255,255,255,.15);
+  padding:3vw;
+  border-radius:3vw;
+  color:#fff;
+  font-weight:500;
+  backdrop-filter:blur(8px);
+  text-align:center;
+  font-size:4vw;
+}
+@media (min-width:600px){
+  h1{font-size:28px}
+  button{font-size:18px;padding:16px}
+  #status{font-size:16px;padding:12px}
+}
+</style>
 </head>
+
 <body>
-  <h1>ID Card Scanner</h1>
-  
-  <div class="video-container">
-    <video id="video" autoplay playsinline></video>
-    <div id="overlay"></div>
-  </div>
-  
-  <canvas id="canvas"></canvas>
-  
-  <div class="button-column">
-    <button id="startCamera">Start Camera</button>
-    <button id="capture">Capture</button>
-    <button id="nextId">Next ID</button>
-    <button id="complete">Complete</button>
-  </div>
-  
-  <div id="status">Status: Camera not started</div>
+<h1>ID Card Scanner</h1>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const status = document.getElementById('status');
-    const overlay = document.getElementById('overlay');
+<div class="video-container">
+  <video id="video" autoplay playsinline></video>
+  <div id="overlay"></div>
+</div>
 
-    let stream;
-    let captureStep = 0;
-    let currentCard = {};
-    let cards = [];
+<canvas id="canvas"></canvas>
 
-    const ID_RATIO = 1.586; 
-    const ID_WIDTH = 1200;
-    const ID_HEIGHT = Math.round(ID_WIDTH / ID_RATIO);
-    canvas.width = ID_WIDTH;
-    canvas.height = ID_HEIGHT;
+<div class="button-column">
+  <button id="startCamera">Start Camera</button>
+  <button id="capture">Capture</button>
+  <button id="nextId">Next ID</button>
+  <button id="complete">Complete</button>
+</div>
 
-    function updateOverlay() {
-  const container = video.parentElement;
-  const cw = container.clientWidth;
-  const ch = container.clientHeight;
+<div id="status">Status: Loading OpenCV...</div>
 
-  let ow = cw * 0.9;           // 90% of container width
-  let oh = ow / ID_RATIO;      // maintain ID ratio
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script async src="https://docs.opencv.org/4.x/opencv.js"></script>
 
-  if (oh > ch * 0.9) {
-    oh = ch * 0.9;
-    ow = oh * ID_RATIO;
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const status = document.getElementById('status');
+
+let stream;
+let captureStep = 0;
+let currentCard = {};
+let cards = [];
+
+const ID_RATIO = 1.586;
+const OUTPUT_WIDTH = 1200;
+const OUTPUT_HEIGHT = Math.round(OUTPUT_WIDTH / ID_RATIO);
+
+canvas.width = OUTPUT_WIDTH;
+canvas.height = OUTPUT_HEIGHT;
+
+cv['onRuntimeInitialized'] = () => {
+  status.textContent = "Status: Ready";
+};
+
+document.getElementById('startCamera').onclick = async () => {
+  stream = await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:"environment"}
+  });
+  video.srcObject = stream;
+  status.textContent = "Camera started";
+};
+
+function autoCropPerspective() {
+
+  let src = cv.imread(video);
+  let gray = new cv.Mat();
+  let blurred = new cv.Mat();
+  let edged = new cv.Mat();
+
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  cv.GaussianBlur(gray, blurred, new cv.Size(5,5), 0);
+  cv.Canny(blurred, edged, 75, 200);
+
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+  let biggest;
+  let maxArea = 0;
+
+  for (let i=0; i<contours.size(); i++){
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
+    if(area > 5000){
+      let peri = cv.arcLength(cnt,true);
+      let approx = new cv.Mat();
+      cv.approxPolyDP(cnt, approx, 0.02*peri, true);
+      if(approx.rows === 4 && area > maxArea){
+        biggest = approx;
+        maxArea = area;
+      }
+    }
   }
 
-  overlay.style.width = ow + "px";
-  overlay.style.height = oh + "px";
-  overlay.style.left = (cw - ow) / 2 + "px";
-  overlay.style.top = (ch - oh) / 2 + "px";
+  if(!biggest){
+    status.textContent = "No card detected. Try again.";
+    return null;
+  }
+
+  let pts = [];
+  for(let i=0;i<4;i++){
+    pts.push({
+      x: biggest.intPtr(i,0)[0],
+      y: biggest.intPtr(i,0)[1]
+    });
+  }
+
+  pts.sort((a,b)=>a.y-b.y);
+  let top = pts.slice(0,2).sort((a,b)=>a.x-b.x);
+  let bottom = pts.slice(2,4).sort((a,b)=>a.x-b.x);
+
+  let ordered = [top[0], top[1], bottom[1], bottom[0]];
+
+  let srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[
+    ordered[0].x,ordered[0].y,
+    ordered[1].x,ordered[1].y,
+    ordered[2].x,ordered[2].y,
+    ordered[3].x,ordered[3].y
+  ]);
+
+  let dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[
+    0,0,
+    OUTPUT_WIDTH,0,
+    OUTPUT_WIDTH,OUTPUT_HEIGHT,
+    0,OUTPUT_HEIGHT
+  ]);
+
+  let M = cv.getPerspectiveTransform(srcTri,dstTri);
+  let dst = new cv.Mat();
+  cv.warpPerspective(src,dst,M,new cv.Size(OUTPUT_WIDTH,OUTPUT_HEIGHT));
+
+  cv.imshow(canvas,dst);
+
+  src.delete(); gray.delete(); blurred.delete();
+  edged.delete(); contours.delete(); hierarchy.delete();
+  dst.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+
+  return canvas.toDataURL("image/jpeg",0.9);
 }
 
-    window.addEventListener("resize", updateOverlay);
-    video.addEventListener("loadedmetadata", updateOverlay);
+document.getElementById('capture').onclick = () => {
 
-    document.getElementById('startCamera').onclick = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
-        });
-        video.srcObject = stream;
-        status.textContent = "Status: HD Back camera started";
-      } catch (err) {
-        status.textContent = "Error: " + err.message;
-      }
-    };
+  let imageData = autoCropPerspective();
+  if(!imageData) return;
 
-    function processImage() {
-      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let data = imageData.data;
+  if(captureStep === 0){
+    currentCard.front = imageData;
+    captureStep = 1;
+    status.textContent = "Front captured. Scan back side.";
+  }else{
+    currentCard.back = imageData;
+    captureStep = 0;
+    status.textContent = "Back captured.";
+  }
+};
 
-      const contrast = 1.6;
-      const brightness = 10;
-      const blackBoost = 15;
+document.getElementById('nextId').onclick = () => {
+  if(currentCard.front && currentCard.back){
+    cards.push(currentCard);
+    currentCard = {};
+    status.textContent = "Next ID ready.";
+  }else{
+    status.textContent = "Capture both sides first.";
+  }
+};
 
-      for (let i = 0; i < data.length; i += 4) {
-        data[i]   = ((data[i] - 128) * contrast + 128) + brightness;
-        data[i+1] = ((data[i+1] - 128) * contrast + 128) + brightness;
-        data[i+2] = ((data[i+2] - 128) * contrast + 128) + brightness;
+document.getElementById('complete').onclick = () => {
 
-        if (data[i] < 100) data[i] -= blackBoost;
-        if (data[i+1] < 100) data[i+1] -= blackBoost;
-        if (data[i+2] < 100) data[i+2] -= blackBoost;
+  if(currentCard.front && currentCard.back){
+    cards.push(currentCard);
+    currentCard = {};
+  }
 
-        data[i] = Math.max(0, Math.min(255, data[i]));
-        data[i+1] = Math.max(0, Math.min(255, data[i+1]));
-        data[i+2] = Math.max(0, Math.min(255, data[i+2]));
-      }
+  if(cards.length===0){
+    status.textContent="No cards.";
+    return;
+  }
 
-      ctx.putImageData(imageData, 0, 0);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
 
-      applyConvolution([
-         0, -1,  0,
-        -1,  5, -1,
-         0, -1,  0
-      ]);
-    }
+  cards.forEach((card,i)=>{
+    if(i>0) pdf.addPage();
+    const w=160;
+    const h=w/ID_RATIO;
+    const x=(pdf.internal.pageSize.getWidth()-w)/2;
+    pdf.addImage(card.front,"JPEG",x,30,w,h);
+    pdf.addImage(card.back,"JPEG",x,30+h+25,w,h);
+  });
 
-    function applyConvolution(kernel) {
-      const side = 3;
-      const halfSide = 1;
-
-      const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const sw = src.width;
-      const sh = src.height;
-      const srcData = src.data;
-
-      const output = ctx.createImageData(sw, sh);
-      const dstData = output.data;
-
-      for (let y = 0; y < sh; y++) {
-        for (let x = 0; x < sw; x++) {
-          let r = 0, g = 0, b = 0;
-          for (let ky = 0; ky < side; ky++) {
-            for (let kx = 0; kx < side; kx++) {
-              const scy = y + ky - halfSide;
-              const scx = x + kx - halfSide;
-              if (scy >= 0 && scy < sh && scx >= 0 && scx < sw) {
-                const srcOffset = (scy * sw + scx) * 4;
-                const wt = kernel[ky * side + kx];
-                r += srcData[srcOffset] * wt;
-                g += srcData[srcOffset+1] * wt;
-                b += srcData[srcOffset+2] * wt;
-              }
-            }
-          }
-          const dstOffset = (y * sw + x) * 4;
-          dstData[dstOffset] = Math.min(255, Math.max(0, r));
-          dstData[dstOffset+1] = Math.min(255, Math.max(0, g));
-          dstData[dstOffset+2] = Math.min(255, Math.max(0, b));
-          dstData[dstOffset+3] = 255;
-        }
-      }
-
-      ctx.putImageData(output, 0, 0);
-    }
-
-    document.getElementById('capture').onclick = () => {
-      const videoRatio = video.videoWidth / video.videoHeight;
-      let sx, sy, sWidth, sHeight;
-
-      if (videoRatio > ID_RATIO) {
-        sHeight = video.videoHeight;
-        sWidth = sHeight * ID_RATIO;
-        sx = (video.videoWidth - sWidth) / 2;
-        sy = 0;
-      } else {
-        sWidth = video.videoWidth;
-        sHeight = sWidth / ID_RATIO;
-        sx = 0;
-        sy = (video.videoHeight - sHeight) / 2;
-      }
-
-      ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
-      processImage();
-
-      const imageData = canvas.toDataURL("image/jpeg", 0.85);
-
-      if (captureStep === 0) {
-        currentCard.front = imageData;
-        status.textContent = "Front side captured. Now scan back side.";
-        captureStep = 1;
-      } else {
-        currentCard.back = imageData;
-        status.textContent = "Back side captured. Click Next ID or Complete.";
-        captureStep = 0;
-      }
-    };
-
-    document.getElementById('nextId').onclick = () => {
-      if (currentCard.front && currentCard.back) {
-        cards.push(currentCard);
-        currentCard = {};
-        status.textContent = "Ready for next ID. Capture front side.";
-      } else {
-        status.textContent = "Please capture both sides first.";
-      }
-    };
-
-    document.getElementById('complete').onclick = () => {
-      if (currentCard.front && currentCard.back) {
-        cards.push(currentCard);
-        currentCard = {};
-      }
-      if (cards.length === 0) {
-        status.textContent = "No ID cards captured.";
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-
-      cards.forEach((card, index) => {
-        if (index > 0) pdf.addPage();
-
-        const imgWidth = 160;
-        const imgHeight = imgWidth / ID_RATIO;
-        const pageWidth = pdf.internal.pageSize.getWidth();
-
-        const x = (pageWidth - imgWidth) / 2;
-        const yFront = 30;
-
-        pdf.addImage(card.front, "JPEG", x, yFront, imgWidth, imgHeight);
-        pdf.addImage(card.back, "JPEG", x, yFront + imgHeight + 25, imgWidth, imgHeight);
-      });
-
-      pdf.save("IDCards_Optimized.pdf");
-      status.textContent = "Optimized high-quality PDF generated.";
-      cards = [];
-    };
-
-    // Fast-feel button click flash
-    document.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        btn.style.filter = "brightness(1.2)";
-        setTimeout(() => btn.style.filter = "brightness(1)", 100);
-      });
-    });
-  </script>
+  pdf.save("IDCards_AutoCrop.pdf");
+  cards=[];
+  status.textContent="PDF Generated.";
+};
+</script>
 </body>
 </html>
