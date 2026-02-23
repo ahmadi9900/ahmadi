@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
-/* ===== YOUR ORIGINAL DESIGN (UNCHANGED) ===== */
 body {
   margin: 0;
   font-family: 'Segoe UI', Arial, sans-serif;
@@ -21,7 +20,6 @@ h1 {
   color: #ffffff;
   margin-bottom: 5vw;
   font-weight: 600;
-  letter-spacing: 1px;
   font-size: 6vw;
   text-align: center;
 }
@@ -86,7 +84,7 @@ button {
 }
 </style>
 
-<!-- OpenCV (NO async) -->
+<!-- OpenCV -->
 <script src="https://docs.opencv.org/4.x/opencv.js"></script>
 
 <!-- jsPDF -->
@@ -119,7 +117,6 @@ const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const status = document.getElementById('status');
-const overlay = document.getElementById('overlay');
 
 let stream;
 let captureStep = 0;
@@ -140,7 +137,7 @@ cv['onRuntimeInitialized'] = () => {
   status.textContent = "OpenCV loaded. Ready.";
 };
 
-/* ===== Camera ===== */
+/* ===== Start Camera ===== */
 document.getElementById('startCamera').onclick = async () => {
   stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: "environment", width:{ideal:1920}, height:{ideal:1080}}
@@ -175,7 +172,7 @@ function processImage() {
   ctx.putImageData(imageData, 0, 0);
 }
 
-/* ===== AUTO EDGE DETECT + PERSPECTIVE ===== */
+/* ===== Capture with Auto Crop ===== */
 document.getElementById('capture').onclick = () => {
 
   if (!cvReady) {
@@ -207,7 +204,6 @@ document.getElementById('capture').onclick = () => {
   for (let i = 0; i < contours.size(); i++) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-
     if (area > maxArea) {
       let peri = cv.arcLength(cnt, true);
       let approx = new cv.Mat();
@@ -257,22 +253,69 @@ document.getElementById('capture').onclick = () => {
   cv.warpPerspective(src, dst, M, new cv.Size(ID_WIDTH, ID_HEIGHT));
   cv.imshow(canvas, dst);
 
-  src.delete(); gray.delete(); blur.delete(); edges.delete();
-  contours.delete(); hierarchy.delete(); dst.delete();
-
   processImage();
 
   const imageData = canvas.toDataURL("image/jpeg", 0.92);
 
   if (captureStep === 0) {
     currentCard.front = imageData;
-    status.textContent = "Front captured (auto cropped)";
+    status.textContent = "Front captured.";
     captureStep = 1;
   } else {
     currentCard.back = imageData;
-    status.textContent = "Back captured (auto cropped)";
+    status.textContent = "Back captured.";
     captureStep = 0;
   }
+
+};
+
+/* ===== Next ID ===== */
+document.getElementById('nextId').onclick = () => {
+  if (currentCard.front && currentCard.back) {
+    cards.push(currentCard);
+    currentCard = {};
+    captureStep = 0;
+    status.textContent = "Ready for next ID.";
+  } else {
+    status.textContent = "Capture both sides first.";
+  }
+};
+
+/* ===== Complete ===== */
+document.getElementById('complete').onclick = () => {
+
+  if (currentCard.front && currentCard.back) {
+    cards.push(currentCard);
+    currentCard = {};
+  }
+
+  if (cards.length === 0) {
+    status.textContent = "No ID cards captured.";
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+
+  cards.forEach((card, index) => {
+
+    if (index > 0) pdf.addPage();
+
+    const imgWidth = 160;
+    const imgHeight = imgWidth / ID_RATIO;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+
+    const x = (pageWidth - imgWidth) / 2;
+    const yFront = 30;
+
+    pdf.addImage(card.front, "JPEG", x, yFront, imgWidth, imgHeight);
+    pdf.addImage(card.back, "JPEG", x, yFront + imgHeight + 25, imgWidth, imgHeight);
+
+  });
+
+  pdf.save("IDCards_Optimized.pdf");
+  status.textContent = "PDF generated.";
+  cards = [];
 };
 
 </script>
