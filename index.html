@@ -84,12 +84,8 @@ button {
 }
 </style>
 
-<!-- OpenCV -->
 <script src="https://docs.opencv.org/4.x/opencv.js"></script>
-
-<!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 </head>
 <body>
 
@@ -151,8 +147,8 @@ function processImage() {
   let data = imageData.data;
 
   const contrast = 1.6;
-  const brightness = 7;   // LOWERED
-  const blackBoost = 20;  // INCREASED
+  const brightness = 7;   // Lowered
+  const blackBoost = 20;  // Increased
 
   for (let i = 0; i < data.length; i += 4) {
     data[i]   = ((data[i] - 128) * contrast + 128) + brightness;
@@ -170,11 +166,11 @@ function processImage() {
 
   ctx.putImageData(imageData, 0, 0);
 
-  // SHARPEN KERNEL
+  // SAFE STRONG SHARPEN KERNEL
   applyConvolution([
-     0, -1,  0,
-    -1,  7, -1,  // INCREASED SHARPEN
-     0, -1,  0
+    -1, -1, -1,
+    -1,  9, -1,
+    -1, -1, -1
   ]);
 }
 
@@ -208,9 +204,9 @@ function applyConvolution(kernel) {
         }
       }
       const dstOffset=(y*sw+x)*4;
-      dstData[dstOffset] = Math.min(255,Math.max(0,r));
-      dstData[dstOffset+1] = Math.min(255,Math.max(0,g));
-      dstData[dstOffset+2] = Math.min(255,Math.max(0,b));
+      dstData[dstOffset]   = Math.min(255, Math.max(0, r | 0));
+      dstData[dstOffset+1] = Math.min(255, Math.max(0, g | 0));
+      dstData[dstOffset+2] = Math.min(255, Math.max(0, b | 0));
       dstData[dstOffset+3] = 255;
     }
   }
@@ -301,7 +297,7 @@ document.getElementById('capture').onclick = () => {
     dst,
     M,
     new cv.Size(ID_WIDTH,ID_HEIGHT),
-    cv.INTER_CUBIC,   // HIGH QUALITY
+    cv.INTER_CUBIC,
     cv.BORDER_CONSTANT,
     new cv.Scalar()
   );
@@ -345,27 +341,32 @@ document.getElementById('complete').onclick = () => {
     currentCard={};
   }
 
-  if(cards.length===0){
-    status.textContent="No ID cards captured.";
+  if(cards.length === 0){
+    status.textContent = "No ID cards captured.";
     return;
   }
 
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
+  const pdf = new jsPDF("p","mm","a4");
 
   cards.forEach((card,index)=>{
     if(index>0) pdf.addPage();
-    const imgWidth=160;
+
+    const imgWidth=85;   // Safe width in mm
     const imgHeight=imgWidth/ID_RATIO;
+
     const pageWidth = pdf.internal.pageSize.getWidth();
-    const x=(pageWidth-imgWidth)/2;
-    const yFront=30;
-    pdf.addImage(card.front,"JPEG",x,yFront,imgWidth,imgHeight);
-    pdf.addImage(card.back,"JPEG",x,yFront+imgHeight+25,imgWidth,imgHeight);
+    const x = (pageWidth - imgWidth)/2;
+
+    const yFront=40;
+    const yBack=yFront+imgHeight+20;
+
+    if(card.front) pdf.addImage(card.front,"JPEG",x,yFront,imgWidth,imgHeight);
+    if(card.back) pdf.addImage(card.back,"JPEG",x,yBack,imgWidth,imgHeight);
   });
 
   pdf.save("IDCards_Optimized.pdf");
-  status.textContent="PDF generated.";
+  status.textContent="PDF generated successfully.";
   cards=[];
 };
 </script>
