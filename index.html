@@ -105,7 +105,7 @@ let currentCard = {};
 let cards = [];
 
 const ID_RATIO = 1.586;
-const OUTPUT_WIDTH = 1200;
+const OUTPUT_WIDTH = 1400;   // Increased resolution
 const OUTPUT_HEIGHT = Math.round(OUTPUT_WIDTH / ID_RATIO);
 
 canvas.width = OUTPUT_WIDTH;
@@ -132,12 +132,7 @@ document.getElementById('startCamera').onclick = async () => {
   }
 };
 
-function autoCropPerspective() {
-
-  if (typeof cv === "undefined") {
-    status.textContent = "OpenCV not loaded.";
-    return null;
-  }
+function autoCropPerspective(){
 
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -207,13 +202,28 @@ function autoCropPerspective() {
   let dst = new cv.Mat();
   cv.warpPerspective(src, dst, M, new cv.Size(OUTPUT_WIDTH, OUTPUT_HEIGHT));
 
-  cv.imshow(canvas, dst);
+  // ===== Image Enhancement =====
+  let enhanced = new cv.Mat();
+  dst.convertTo(enhanced, -1, 1.6, 20); // contrast + brightness
 
-  let result = canvas.toDataURL("image/jpeg", 0.9);
+  let kernel = cv.matFromArray(3, 3, cv.CV_32F, [
+     0, -1,  0,
+    -1,  5, -1,
+     0, -1,  0
+  ]);
 
+  let sharpened = new cv.Mat();
+  cv.filter2D(enhanced, sharpened, cv.CV_8U, kernel);
+
+  cv.imshow(canvas, sharpened);
+
+  let result = canvas.toDataURL("image/jpeg", 0.98);
+
+  // Cleanup
   src.delete(); gray.delete(); blur.delete(); edge.delete();
   contours.delete(); hierarchy.delete();
-  dst.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+  dst.delete(); enhanced.delete(); sharpened.delete();
+  srcTri.delete(); dstTri.delete(); M.delete(); kernel.delete();
 
   return result;
 }
@@ -266,7 +276,7 @@ document.getElementById('complete').onclick = () => {
     pdf.addImage(card.back,"JPEG",x,30+h+25,w,h);
   });
 
-  pdf.save("IDCards_AutoCrop.pdf");
+  pdf.save("IDCards_Enhanced.pdf");
   cards=[];
   status.textContent="PDF Generated.";
 };
