@@ -112,7 +112,6 @@ button {
 <div id="status">Status: Camera not started</div>
 
 <script>
-
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -146,14 +145,14 @@ document.getElementById('startCamera').onclick = async () => {
   status.textContent = "Camera started";
 };
 
-/* ===== YOUR ORIGINAL FILTER (UNCHANGED) ===== */
+/* ===== Process Image (Filter + Sharpen) ===== */
 function processImage() {
   let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   let data = imageData.data;
 
   const contrast = 1.6;
-  const brightness = 3;
-  const blackBoost = 30;
+  const brightness = 7;   // LOWERED
+  const blackBoost = 20;  // INCREASED
 
   for (let i = 0; i < data.length; i += 4) {
     data[i]   = ((data[i] - 128) * contrast + 128) + brightness;
@@ -170,6 +169,53 @@ function processImage() {
   }
 
   ctx.putImageData(imageData, 0, 0);
+
+  // SHARPEN KERNEL
+  applyConvolution([
+     0, -1,  0,
+    -1,  7, -1,  // INCREASED SHARPEN
+     0, -1,  0
+  ]);
+}
+
+/* ===== Convolution ===== */
+function applyConvolution(kernel) {
+  const side = 3;
+  const halfSide = 1;
+
+  const src = ctx.getImageData(0,0,canvas.width,canvas.height);
+  const sw = src.width;
+  const sh = src.height;
+  const srcData = src.data;
+
+  const output = ctx.createImageData(sw, sh);
+  const dstData = output.data;
+
+  for (let y=0; y<sh; y++){
+    for (let x=0; x<sw; x++){
+      let r=0, g=0, b=0;
+      for(let ky=0; ky<side; ky++){
+        for(let kx=0; kx<side; kx++){
+          const scy=y+ky-halfSide;
+          const scx=x+kx-halfSide;
+          if(scy>=0 && scy<sh && scx>=0 && scx<sw){
+            const srcOffset=(scy*sw+scx)*4;
+            const wt=kernel[ky*side+kx];
+            r += srcData[srcOffset]*wt;
+            g += srcData[srcOffset+1]*wt;
+            b += srcData[srcOffset+2]*wt;
+          }
+        }
+      }
+      const dstOffset=(y*sw+x)*4;
+      dstData[dstOffset] = Math.min(255,Math.max(0,r));
+      dstData[dstOffset+1] = Math.min(255,Math.max(0,g));
+      dstData[dstOffset+2] = Math.min(255,Math.max(0,b));
+      dstData[dstOffset+3] = 255;
+    }
+  }
+
+  ctx.putImageData(output,0,0);
 }
 
 /* ===== Capture with Auto Crop ===== */
@@ -201,131 +247,128 @@ document.getElementById('capture').onclick = () => {
   let biggest = null;
   let maxArea = 0;
 
-  for (let i = 0; i < contours.size(); i++) {
+  for (let i=0;i<contours.size();i++){
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-    if (area > maxArea) {
-      let peri = cv.arcLength(cnt, true);
+    if(area>maxArea){
+      let peri = cv.arcLength(cnt,true);
       let approx = new cv.Mat();
-      cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-      if (approx.rows === 4) {
-        biggest = approx;
-        maxArea = area;
+      cv.approxPolyDP(cnt,approx,0.02*peri,true);
+      if(approx.rows===4){
+        biggest=approx;
+        maxArea=area;
       }
     }
   }
 
-  if (!biggest) {
-    status.textContent = "No card detected.";
+  if(!biggest){
+    status.textContent="No card detected.";
     return;
   }
 
-  let pts = [];
-  for (let i = 0; i < 4; i++) {
+  let pts=[];
+  for(let i=0;i<4;i++){
     pts.push({
-      x: biggest.intPtr(i,0)[0],
-      y: biggest.intPtr(i,0)[1]
+      x:biggest.intPtr(i,0)[0],
+      y:biggest.intPtr(i,0)[1]
     });
   }
 
   pts.sort((a,b)=>a.y-b.y);
-  let top = pts.slice(0,2).sort((a,b)=>a.x-b.x);
-  let bottom = pts.slice(2,4).sort((a,b)=>a.x-b.x);
-  let ordered = [top[0], top[1], bottom[1], bottom[0]];
+  let top=pts.slice(0,2).sort((a,b)=>a.x-b.x);
+  let bottom=pts.slice(2,4).sort((a,b)=>a.x-b.x);
+  let ordered=[top[0],top[1],bottom[1],bottom[0]];
 
-  let srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[
+  let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[
     ordered[0].x, ordered[0].y,
     ordered[1].x, ordered[1].y,
     ordered[2].x, ordered[2].y,
     ordered[3].x, ordered[3].y
   ]);
 
-  let dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[
+  let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[
     0,0,
     ID_WIDTH,0,
     ID_WIDTH,ID_HEIGHT,
     0,ID_HEIGHT
   ]);
 
-  let M = cv.getPerspectiveTransform(srcTri, dstTri);
-  let dst = new cv.Mat();
+  let M=cv.getPerspectiveTransform(srcTri,dstTri);
+  let dst=new cv.Mat();
 
   cv.warpPerspective(
-  src,
-  dst,
-  M,
-  new cv.Size(ID_WIDTH, ID_HEIGHT),
-  cv.INTER_CUBIC,
-  cv.BORDER_CONSTANT,
-  new cv.Scalar()
-);
-  cv.imshow(canvas, dst);
+    src,
+    dst,
+    M,
+    new cv.Size(ID_WIDTH,ID_HEIGHT),
+    cv.INTER_CUBIC,   // HIGH QUALITY
+    cv.BORDER_CONSTANT,
+    new cv.Scalar()
+  );
 
+  cv.imshow(canvas,dst);
   processImage();
 
-  const imageData = canvas.toDataURL("image/jpeg", 0.92);
+  src.delete(); gray.delete(); blur.delete();
+  edges.delete(); contours.delete(); hierarchy.delete(); dst.delete();
 
-  if (captureStep === 0) {
-    currentCard.front = imageData;
-    status.textContent = "Front captured.";
-    captureStep = 1;
+  const imageData = canvas.toDataURL("image/jpeg",0.92);
+
+  if(captureStep===0){
+    currentCard.front=imageData;
+    status.textContent="Front captured.";
+    captureStep=1;
   } else {
-    currentCard.back = imageData;
-    status.textContent = "Back captured.";
-    captureStep = 0;
+    currentCard.back=imageData;
+    status.textContent="Back captured.";
+    captureStep=0;
   }
-
 };
 
 /* ===== Next ID ===== */
 document.getElementById('nextId').onclick = () => {
-  if (currentCard.front && currentCard.back) {
+  if(currentCard.front && currentCard.back){
     cards.push(currentCard);
-    currentCard = {};
-    captureStep = 0;
-    status.textContent = "Ready for next ID.";
+    currentCard={};
+    captureStep=0;
+    status.textContent="Ready for next ID.";
   } else {
-    status.textContent = "Capture both sides first.";
+    status.textContent="Capture both sides first.";
   }
 };
 
 /* ===== Complete ===== */
 document.getElementById('complete').onclick = () => {
 
-  if (currentCard.front && currentCard.back) {
+  if(currentCard.front && currentCard.back){
     cards.push(currentCard);
-    currentCard = {};
+    currentCard={};
   }
 
-  if (cards.length === 0) {
-    status.textContent = "No ID cards captured.";
+  if(cards.length===0){
+    status.textContent="No ID cards captured.";
     return;
   }
 
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
 
-  cards.forEach((card, index) => {
-
-    if (index > 0) pdf.addPage();
-
-    const imgWidth = 160;
-    const imgHeight = imgWidth / ID_RATIO;
+  cards.forEach((card,index)=>{
+    if(index>0) pdf.addPage();
+    const imgWidth=160;
+    const imgHeight=imgWidth/ID_RATIO;
     const pageWidth = pdf.internal.pageSize.getWidth();
-
-    const x = (pageWidth - imgWidth) / 2;
-    const yFront = 30;
-
-    pdf.addImage(card.front, "JPEG", x, yFront, imgWidth, imgHeight);
-    pdf.addImage(card.back, "JPEG", x, yFront + imgHeight + 25, imgWidth, imgHeight);
-
+    const x=(pageWidth-imgWidth)/2;
+    const yFront=30;
+    pdf.addImage(card.front,"JPEG",x,yFront,imgWidth,imgHeight);
+    pdf.addImage(card.back,"JPEG",x,yFront+imgHeight+25,imgWidth,imgHeight);
   });
 
   pdf.save("IDCards_Optimized.pdf");
-  status.textContent = "PDF generated.";
-  cards = [];
+  status.textContent="PDF generated.";
+  cards=[];
 };
-
 </script>
+
 </body>
 </html>
