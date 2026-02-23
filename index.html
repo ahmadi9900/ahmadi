@@ -152,8 +152,8 @@ function processImage() {
   let data = imageData.data;
 
   const contrast = 1.6;
-  const brightness = 8;
-  const blackBoost = 20;
+  const brightness = 3;
+  const blackBoost = 30;
 
   for (let i = 0; i < data.length; i += 4) {
     data[i]   = ((data[i] - 128) * contrast + 128) + brightness;
