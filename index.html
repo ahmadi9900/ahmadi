@@ -2,78 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ID Card Scanner</title>
+<title>ID Card Scanner - Pro Scan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3vw;
-}
-h1 {
-  color: #ffffff;
-  margin-bottom: 5vw;
-  font-weight: 600;
-  font-size: 6vw;
-  text-align: center;
-}
-.video-container {
-  position: relative;
-  background: #ffffff;
-  padding: 4vw;
-  border-radius: 4vw;
-  margin-bottom: 5vw;
-  width: 90vw;
-  max-width: 500px;
-}
-video {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  border-radius: 3vw;
-}
+body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:linear-gradient(135deg,#1e3c72,#2a5298); display:flex; flex-direction:column; align-items:center; padding:3vw; }
+h1 { color:#fff; margin-bottom:5vw; font-weight:600; font-size:6vw; text-align:center; }
+.video-container { position:relative; background:#fff; padding:4vw; border-radius:4vw; margin-bottom:5vw; width:90vw; max-width:500px; }
+video { width:100%; height:auto; object-fit:cover; border-radius:3vw; }
 canvas { display:none; }
-.button-column {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:3vw;
-  width:90vw;
-  max-width:400px;
-}
-button {
-  width:100%;
-  padding:4vw;
-  font-size:4vw;
-  font-weight:600;
-  border:none;
-  border-radius:3vw;
-  cursor:pointer;
-  color:white;
-}
+.button-column { display:flex; flex-direction:column; align-items:center; gap:3vw; width:90vw; max-width:400px; }
+button { width:100%; padding:4vw; font-size:4vw; font-weight:600; border:none; border-radius:3vw; cursor:pointer; color:white; }
 #startCamera { background:linear-gradient(135deg,#00c853,#009624); }
 #capture { background:linear-gradient(135deg,#ff9800,#ef6c00); }
 #nextId { background:linear-gradient(135deg,#7e57c2,#512da8); }
 #complete { background:linear-gradient(135deg,#e53935,#b71c1c); }
-#status {
-  margin-top:5vw;
-  background:rgba(255,255,255,.15);
-  padding:3vw;
-  border-radius:3vw;
-  color:#fff;
-  text-align:center;
-  font-size:4vw;
-}
+#status { margin-top:5vw; background:rgba(255,255,255,.15); padding:3vw; border-radius:3vw; color:#fff; text-align:center; font-size:4vw; }
 </style>
 </head>
 
 <body>
-<h1>ID Card Scanner</h1>
+<h1>ID Card Scanner - Pro Scan</h1>
 
 <div class="video-container">
   <video id="video" autoplay playsinline></video>
@@ -94,189 +43,103 @@ button {
 <script src="https://docs.opencv.org/4.x/opencv.js"></script>
 
 <script>
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const status = document.getElementById('status');
+const video=document.getElementById('video');
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const status=document.getElementById('status');
 
-let stream;
-let captureStep = 0;
-let currentCard = {};
-let cards = [];
+let stream, captureStep=0, currentCard={}, cards=[];
+const ID_RATIO=1.586;
+const OUTPUT_WIDTH=1920;  // Full resolution for clarity
+const OUTPUT_HEIGHT=Math.round(OUTPUT_WIDTH/ID_RATIO);
+canvas.width=OUTPUT_WIDTH; canvas.height=OUTPUT_HEIGHT;
 
-const ID_RATIO = 1.586;
-const OUTPUT_WIDTH = 1400;   // Increased resolution
-const OUTPUT_HEIGHT = Math.round(OUTPUT_WIDTH / ID_RATIO);
-
-canvas.width = OUTPUT_WIDTH;
-canvas.height = OUTPUT_HEIGHT;
-
-function waitForOpenCV() {
-  if (typeof cv !== "undefined" && cv.getBuildInformation) {
-    status.textContent = "Status: Ready";
-  } else {
-    setTimeout(waitForOpenCV, 100);
-  }
-}
+function waitForOpenCV(){ if(typeof cv!=="undefined"&&cv.getBuildInformation){ status.textContent="Status: Ready"; } else { setTimeout(waitForOpenCV,100); } }
 waitForOpenCV();
 
-document.getElementById('startCamera').onclick = async () => {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }
-    });
-    video.srcObject = stream;
-    status.textContent = "Camera started";
-  } catch (err) {
-    status.textContent = "Camera error: " + err.message;
-  }
+document.getElementById('startCamera').onclick=async()=>{
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" }});
+    video.srcObject=stream;
+    status.textContent="Camera started";
+  }catch(err){ status.textContent="Camera error: "+err.message; }
 };
 
-function autoCropPerspective(){
+function autoCropProScan(){
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  let src=cv.imread(canvas), gray=new cv.Mat(), blur=new cv.Mat(), edge=new cv.Mat();
 
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
+  cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
+  cv.Canny(blur,edge,75,200);
 
-  let src = cv.imread(canvas);
-  let gray = new cv.Mat();
-  let blur = new cv.Mat();
-  let edge = new cv.Mat();
+  let contours=new cv.MatVector(), hierarchy=new cv.Mat();
+  cv.findContours(edge,contours,hierarchy,cv.RETR_LIST,cv.CHAIN_APPROX_SIMPLE);
 
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, blur, new cv.Size(5,5), 0);
-  cv.Canny(blur, edge, 75, 200);
-
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
-  cv.findContours(edge, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-
-  let biggest = null;
-  let maxArea = 0;
-
-  for (let i = 0; i < contours.size(); i++) {
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    if (area > 5000) {
-      let peri = cv.arcLength(cnt, true);
-      let approx = new cv.Mat();
-      cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-      if (approx.rows === 4 && area > maxArea) {
-        biggest = approx;
-        maxArea = area;
-      }
+  let biggest=null, maxArea=0;
+  for(let i=0;i<contours.size();i++){
+    let cnt=contours.get(i), area=cv.contourArea(cnt);
+    if(area>5000){ let peri=cv.arcLength(cnt,true), approx=new cv.Mat();
+      cv.approxPolyDP(cnt, approx, 0.02*peri,true);
+      if(approx.rows===4 && area>maxArea){ biggest=approx; maxArea=area; }
     }
   }
+  if(!biggest){ status.textContent="No card detected."; return null; }
 
-  if (!biggest) {
-    status.textContent = "No card detected.";
-    return null;
-  }
+  let pts=[]; for(let i=0;i<4;i++) pts.push({x:biggest.intPtr(i,0)[0], y:biggest.intPtr(i,0)[1]});
+  pts.sort((a,b)=>a.y-b.y); let top=pts.slice(0,2).sort((a,b)=>a.x-b.x), bottom=pts.slice(2,4).sort((a,b)=>a.x-b.x), ordered=[top[0],top[1],bottom[1],bottom[0]];
+  
+  let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[ ordered[0].x,ordered[0].y, ordered[1].x,ordered[1].y, ordered[2].x,ordered[2].y, ordered[3].x,ordered[3].y]);
+  let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[0,0, OUTPUT_WIDTH,0, OUTPUT_WIDTH,OUTPUT_HEIGHT, 0,OUTPUT_HEIGHT]);
+  let M=cv.getPerspectiveTransform(srcTri,dstTri), dst=new cv.Mat();
+  cv.warpPerspective(src,dst,M,new cv.Size(OUTPUT_WIDTH,OUTPUT_HEIGHT));
 
-  let pts = [];
-  for (let i = 0; i < 4; i++) {
-    pts.push({
-      x: biggest.intPtr(i,0)[0],
-      y: biggest.intPtr(i,0)[1]
-    });
-  }
+  // ===== Professional Scan Enhancement =====
+  let enhanced=new cv.Mat(), sharpened=new cv.Mat();
+  // Convert to gray for deep black text
+  cv.cvtColor(dst,enhanced,cv.COLOR_RGBA2GRAY);
+  // Apply adaptive histogram equalization (CLAHE) to enhance contrast
+  let clahe=cv.createCLAHE(2.0,new cv.Size(8,8));
+  clahe.apply(enhanced,enhanced);
 
-  pts.sort((a,b)=>a.y-b.y);
-  let top = pts.slice(0,2).sort((a,b)=>a.x-b.x);
-  let bottom = pts.slice(2,4).sort((a,b)=>a.x-b.x);
-  let ordered = [top[0], top[1], bottom[1], bottom[0]];
+  // Sharpen
+  let kernel=cv.matFromArray(3,3,cv.CV_32F,[0,-1,0,-1,5,-1,0,-1,0]);
+  cv.filter2D(enhanced,sharpened,cv.CV_8U,kernel);
 
-  let srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[
-    ordered[0].x,ordered[0].y,
-    ordered[1].x,ordered[1].y,
-    ordered[2].x,ordered[2].y,
-    ordered[3].x,ordered[3].y
-  ]);
-
-  let dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[
-    0,0,
-    OUTPUT_WIDTH,0,
-    OUTPUT_WIDTH,OUTPUT_HEIGHT,
-    0,OUTPUT_HEIGHT
-  ]);
-
-  let M = cv.getPerspectiveTransform(srcTri, dstTri);
-  let dst = new cv.Mat();
-  cv.warpPerspective(src, dst, M, new cv.Size(OUTPUT_WIDTH, OUTPUT_HEIGHT));
-
-  // ===== Image Enhancement =====
-  let enhanced = new cv.Mat();
-  dst.convertTo(enhanced, -1, 1.6, 20); // contrast + brightness
-
-  let kernel = cv.matFromArray(3, 3, cv.CV_32F, [
-     0, -1,  0,
-    -1,  5, -1,
-     0, -1,  0
-  ]);
-
-  let sharpened = new cv.Mat();
-  cv.filter2D(enhanced, sharpened, cv.CV_8U, kernel);
-
-  cv.imshow(canvas, sharpened);
-
-  let result = canvas.toDataURL("image/jpeg", 0.98);
+  cv.imshow(canvas,sharpened);
+  let result=canvas.toDataURL("image/jpeg",0.98);
 
   // Cleanup
-  src.delete(); gray.delete(); blur.delete(); edge.delete();
-  contours.delete(); hierarchy.delete();
-  dst.delete(); enhanced.delete(); sharpened.delete();
-  srcTri.delete(); dstTri.delete(); M.delete(); kernel.delete();
+  src.delete(); gray.delete(); blur.delete(); edge.delete(); contours.delete(); hierarchy.delete();
+  dst.delete(); enhanced.delete(); sharpened.delete(); srcTri.delete(); dstTri.delete(); M.delete(); kernel.delete(); clahe.delete();
 
   return result;
 }
 
-document.getElementById('capture').onclick = () => {
-  let imageData = autoCropPerspective();
-  if (!imageData) return;
-
-  if (captureStep === 0) {
-    currentCard.front = imageData;
-    captureStep = 1;
-    status.textContent = "Front captured.";
-  } else {
-    currentCard.back = imageData;
-    captureStep = 0;
-    status.textContent = "Back captured.";
-  }
+document.getElementById('capture').onclick=()=>{
+  let imgData=autoCropProScan(); if(!imgData) return;
+  if(captureStep===0){ currentCard.front=imgData; captureStep=1; status.textContent="Front captured."; }
+  else{ currentCard.back=imgData; captureStep=0; status.textContent="Back captured."; }
 };
 
-document.getElementById('nextId').onclick = () => {
-  if (currentCard.front && currentCard.back) {
-    cards.push(currentCard);
-    currentCard = {};
-    status.textContent = "Next ID ready.";
-  } else {
-    status.textContent = "Capture both sides first.";
-  }
+document.getElementById('nextId').onclick=()=>{
+  if(currentCard.front&&currentCard.back){ cards.push(currentCard); currentCard={}; status.textContent="Next ID ready."; }
+  else{ status.textContent="Capture both sides first."; }
 };
 
-document.getElementById('complete').onclick = () => {
-  if (currentCard.front && currentCard.back) {
-    cards.push(currentCard);
-    currentCard = {};
-  }
+document.getElementById('complete').onclick=()=>{
+  if(currentCard.front&&currentCard.back){ cards.push(currentCard); currentCard={}; }
+  if(cards.length===0){ status.textContent="No cards captured."; return; }
 
-  if (cards.length === 0) {
-    status.textContent = "No cards captured.";
-    return;
-  }
-
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
-
+  const { jsPDF }=window.jspdf;
+  const pdf=new jsPDF();
   cards.forEach((card,i)=>{
     if(i>0) pdf.addPage();
-    const w=160;
-    const h=w/ID_RATIO;
-    const x=(pdf.internal.pageSize.getWidth()-w)/2;
+    const w=160,h=w/ID_RATIO,x=(pdf.internal.pageSize.getWidth()-w)/2;
     pdf.addImage(card.front,"JPEG",x,30,w,h);
     pdf.addImage(card.back,"JPEG",x,30+h+25,w,h);
   });
-
-  pdf.save("IDCards_Enhanced.pdf");
+  pdf.save("IDCards_ProScan.pdf");
   cards=[];
   status.textContent="PDF Generated.";
 };
