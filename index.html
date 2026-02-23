@@ -147,8 +147,8 @@ function processImage() {
   let data = imageData.data;
 
   const contrast = 1.6;
-  const brightness = 7;   // Lowered
-  const blackBoost = 20;  // Increased
+  const brightness = 5;   // slightly lower brightness
+  const blackBoost = 25;  // stronger black points
 
   for (let i = 0; i < data.length; i += 4) {
     data[i]   = ((data[i] - 128) * contrast + 128) + brightness;
@@ -308,7 +308,7 @@ document.getElementById('capture').onclick = () => {
   src.delete(); gray.delete(); blur.delete();
   edges.delete(); contours.delete(); hierarchy.delete(); dst.delete();
 
-  const imageData = canvas.toDataURL("image/jpeg",0.92);
+  const imageData = canvas.toDataURL("image/jpeg",0.95); // higher quality
 
   if(captureStep===0){
     currentCard.front=imageData;
@@ -355,12 +355,12 @@ document.getElementById('complete').onclick = () => {
   cards.forEach((card,index)=>{
     if(index>0) pdf.addPage();
 
-    const imgWidth = pageWidth * 0.8;        // 80% of page width
+    const imgWidth = pageWidth * 0.72;       // slightly smaller than before
     const imgHeight = imgWidth / ID_RATIO;
 
     const x = (pageWidth - imgWidth)/2;
-    const yFront = 20;                       // top margin
-    const yBack = yFront + imgHeight + 15;   // space between front/back
+    const yFront = 20;
+    const yBack = yFront + imgHeight + 15;
 
     if(card.front) pdf.addImage(card.front,"JPEG",x,yFront,imgWidth,imgHeight);
     if(card.back) pdf.addImage(card.back,"JPEG",x,yBack,imgWidth,imgHeight);
