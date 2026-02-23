@@ -250,7 +250,15 @@ document.getElementById('capture').onclick = () => {
   let M = cv.getPerspectiveTransform(srcTri, dstTri);
   let dst = new cv.Mat();
 
-  cv.warpPerspective(src, dst, M, new cv.Size(ID_WIDTH, ID_HEIGHT));
+  cv.warpPerspective(
+  src,
+  dst,
+  M,
+  new cv.Size(ID_WIDTH, ID_HEIGHT),
+  cv.INTER_CUBIC,
+  cv.BORDER_CONSTANT,
+  new cv.Scalar()
+);
   cv.imshow(canvas, dst);
 
   processImage();
