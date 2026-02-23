@@ -151,10 +151,22 @@
       }
     };
 
+    // Robust function to order points: top-left, top-right, bottom-right, bottom-left
+    function orderPoints(pts) {
+      let rect = [null,null,null,null];
+      let sum = pts.map(p => p.x + p.y);
+      let diff = pts.map(p => p.y - p.x);
+      rect[0] = pts[sum.indexOf(Math.min(...sum))]; // top-left
+      rect[2] = pts[sum.indexOf(Math.max(...sum))]; // bottom-right
+      rect[1] = pts[diff.indexOf(Math.min(...diff))]; // top-right
+      rect[3] = pts[diff.indexOf(Math.max(...diff))]; // bottom-left
+      return rect;
+    }
+
     function processImage() {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Apply original filters
+      // Step 1: Apply contrast/brightness/black boost filters
       let imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
       let data = imageData.data;
       const contrast=1.6, brightness=10, blackBoost=15;
@@ -171,10 +183,10 @@
       }
       ctx.putImageData(imageData,0,0);
 
-      // Perspective crop with OpenCV
+      // Step 2: Edge detection + perspective crop
       if(typeof cv==='undefined') return;
       let src=cv.imread(canvas), dst=new cv.Mat(), gray=new cv.Mat(), edges=new cv.Mat(), contours=new cv.MatVector(), hierarchy=new cv.Mat();
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY,0);
       cv.GaussianBlur(gray, gray, new cv.Size(5,5),0);
       cv.Canny(gray, edges, 75,200);
       cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
@@ -193,16 +205,26 @@
 
       if(maxContour){
         let points=[];
-        for(let i=0;i<4;i++) points.push({x:maxContour.data32S[i*2],y:maxContour.data32S[i*2+1]});
-        points.sort((a,b)=>a.y-b.y);
-        let top=points.slice(0,2).sort((a,b)=>a.x-b.x);
-        let bottom=points.slice(2,4).sort((a,b)=>b.x-b.x);
-        let ordered=[top[0],top[1],bottom[0],bottom[1]];
-        let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[ordered[0].x,ordered[0].y,ordered[1].x,ordered[1].y,ordered[2].x,ordered[2].y,ordered[3].x,ordered[3].y]);
-        let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,canvas.width,0,canvas.width,canvas.height,0,canvas.height]);
+        for(let i=0;i<4;i++) points.push({x:maxContour.data32S[i*2], y:maxContour.data32S[i*2+1]});
+        let ordered = orderPoints(points);
+
+        let srcTri=cv.matFromArray(4,1,cv.CV_32FC2,[
+          ordered[0].x,ordered[0].y,
+          ordered[1].x,ordered[1].y,
+          ordered[2].x,ordered[2].y,
+          ordered[3].x,ordered[3].y
+        ]);
+        let dstTri=cv.matFromArray(4,1,cv.CV_32FC2,[
+          0,0,
+          canvas.width,0,
+          canvas.width,canvas.height,
+          0,canvas.height
+        ]);
+
         let M=cv.getPerspectiveTransform(srcTri,dstTri);
         cv.warpPerspective(src,dst,M,new cv.Size(canvas.width,canvas.height));
         cv.imshow(canvas,dst);
+
         M.delete(); srcTri.delete(); dstTri.delete();
       }
 
