@@ -168,19 +168,19 @@
     function processImage() {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Filters: contrast, brightness, strong black points
+      // Ultra-strong contrast & black boost
       let imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
       let data = imageData.data;
-      const contrast = 1.6;
+      const contrast = 1.8;
       const brightness = 10;
-      const blackBoost = 35; // stronger black points
+      const blackBoost = 60;
       for(let i=0;i<data.length;i+=4){
         data[i] = ((data[i]-128)*contrast+128)+brightness;
         data[i+1] = ((data[i+1]-128)*contrast+128)+brightness;
         data[i+2] = ((data[i+2]-128)*contrast+128)+brightness;
-        if(data[i]<100)data[i]-=blackBoost;
-        if(data[i+1]<100)data[i+1]-=blackBoost;
-        if(data[i+2]<100)data[i+2]-=blackBoost;
+        if(data[i]<120)data[i]-=blackBoost;
+        if(data[i+1]<120)data[i+1]-=blackBoost;
+        if(data[i+2]<120)data[i+2]-=blackBoost;
         data[i] = Math.max(0,Math.min(255,data[i]));
         data[i+1] = Math.max(0,Math.min(255,data[i+1]));
         data[i+2] = Math.max(0,Math.min(255,data[i+2]));
@@ -237,7 +237,7 @@
 
     document.getElementById('capture').onclick = () => {
       processImage();
-      const imageData = canvas.toDataURL("image/jpeg",0.95); // higher quality JPEG
+      const imageData = canvas.toDataURL("image/jpeg",0.85); // optimized size
       if(captureStep===0){ currentCard.front=imageData; status.textContent="Front captured. Now scan back."; captureStep=1; }
       else { currentCard.back=imageData; status.textContent="Back captured. Click Next ID or Complete."; captureStep=0; }
     };
@@ -253,10 +253,10 @@
       const { jsPDF }=window.jspdf; const pdf=new jsPDF();
       cards.forEach((card,index)=>{
         if(index>0) pdf.addPage();
-        const imgWidth=160, imgHeight=imgWidth/ID_RATIO, pageWidth=pdf.internal.pageSize.getWidth();
-        const x=(pageWidth-imgWidth)/2, yFront=30;
+        const imgWidth=180, imgHeight=imgWidth/ID_RATIO, pageWidth=pdf.internal.pageSize.getWidth();
+        const x=(pageWidth-imgWidth)/2, yFront=25;
         pdf.addImage(card.front,"JPEG",x,yFront,imgWidth,imgHeight);
-        pdf.addImage(card.back,"JPEG",x,yFront+imgHeight+25,imgWidth,imgHeight);
+        pdf.addImage(card.back,"JPEG",x,yFront+imgHeight+20,imgWidth,imgHeight);
       });
       pdf.save("IDCards_Optimized.pdf");
       status.textContent="Optimized high-quality PDF generated.";
