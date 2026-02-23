@@ -119,10 +119,13 @@
     const overlay = document.getElementById('overlay');
 
     let stream, captureStep = 0, currentCard = {}, cards = [];
-    const ID_RATIO = 1.586; 
-    const ID_WIDTH = 1200;
+    const ID_RATIO = 1.586;
+
+    // Higher resolution for ultra-clear images
+    const ID_WIDTH = 2400;
     const ID_HEIGHT = Math.round(ID_WIDTH / ID_RATIO);
-    canvas.width = ID_WIDTH; canvas.height = ID_HEIGHT;
+    canvas.width = ID_WIDTH;
+    canvas.height = ID_HEIGHT;
 
     function updateOverlay() {
       const container = video.parentElement;
@@ -151,7 +154,6 @@
       }
     };
 
-    // Robust function to order points: top-left, top-right, bottom-right, bottom-left
     function orderPoints(pts) {
       let rect = [null,null,null,null];
       let sum = pts.map(p => p.x + p.y);
@@ -166,24 +168,26 @@
     function processImage() {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Step 1: Apply contrast/brightness/black boost filters
+      // Filters: contrast, brightness, strong black points
       let imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
       let data = imageData.data;
-      const contrast=1.6, brightness=10, blackBoost=15;
+      const contrast = 1.6;
+      const brightness = 10;
+      const blackBoost = 35; // stronger black points
       for(let i=0;i<data.length;i+=4){
-        data[i]=((data[i]-128)*contrast+128)+brightness;
-        data[i+1]=((data[i+1]-128)*contrast+128)+brightness;
-        data[i+2]=((data[i+2]-128)*contrast+128)+brightness;
+        data[i] = ((data[i]-128)*contrast+128)+brightness;
+        data[i+1] = ((data[i+1]-128)*contrast+128)+brightness;
+        data[i+2] = ((data[i+2]-128)*contrast+128)+brightness;
         if(data[i]<100)data[i]-=blackBoost;
         if(data[i+1]<100)data[i+1]-=blackBoost;
         if(data[i+2]<100)data[i+2]-=blackBoost;
-        data[i]=Math.max(0,Math.min(255,data[i]));
-        data[i+1]=Math.max(0,Math.min(255,data[i+1]));
-        data[i+2]=Math.max(0,Math.min(255,data[i+2]));
+        data[i] = Math.max(0,Math.min(255,data[i]));
+        data[i+1] = Math.max(0,Math.min(255,data[i+1]));
+        data[i+2] = Math.max(0,Math.min(255,data[i+2]));
       }
       ctx.putImageData(imageData,0,0);
 
-      // Step 2: Edge detection + perspective crop
+      // Perspective crop using OpenCV
       if(typeof cv==='undefined') return;
       let src=cv.imread(canvas), dst=new cv.Mat(), gray=new cv.Mat(), edges=new cv.Mat(), contours=new cv.MatVector(), hierarchy=new cv.Mat();
       cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY,0);
@@ -233,7 +237,7 @@
 
     document.getElementById('capture').onclick = () => {
       processImage();
-      const imageData = canvas.toDataURL("image/jpeg",0.85);
+      const imageData = canvas.toDataURL("image/jpeg",0.95); // higher quality JPEG
       if(captureStep===0){ currentCard.front=imageData; status.textContent="Front captured. Now scan back."; captureStep=1; }
       else { currentCard.back=imageData; status.textContent="Back captured. Click Next ID or Complete."; captureStep=0; }
     };
