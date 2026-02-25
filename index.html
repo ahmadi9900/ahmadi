@@ -145,8 +145,8 @@ function processImage() {
   let data = imageData.data;
 
   const contrast = 1.6;
-  const brightness = -8;     // LOWERED MORE
-  const blackBoost = 40;     // Slightly stronger blacks
+  const brightness = -15;   // ONLY brightness lowered
+  const blackBoost = 25;    // ORIGINAL black value
 
   for (let i = 0; i < data.length; i += 4) {
 
@@ -154,9 +154,9 @@ function processImage() {
     data[i+1] = ((data[i+1] - 128) * contrast + 128) + brightness;
     data[i+2] = ((data[i+2] - 128) * contrast + 128) + brightness;
 
-    if (data[i] < 110) data[i] -= blackBoost;
-    if (data[i+1] < 110) data[i+1] -= blackBoost;
-    if (data[i+2] < 110) data[i+2] -= blackBoost;
+    if (data[i] < 100) data[i] -= blackBoost;
+    if (data[i+1] < 100) data[i+1] -= blackBoost;
+    if (data[i+2] < 100) data[i+2] -= blackBoost;
 
     data[i]   = Math.max(0, Math.min(255, data[i]));
     data[i+1] = Math.max(0, Math.min(255, data[i+1]));
@@ -211,7 +211,8 @@ function applyConvolution(kernel) {
   ctx.putImageData(output,0,0);
 }
 
-/* ===== CAPTURE / NEXT ID / COMPLETE SAME AS BEFORE ===== */
+/* ===== CAPTURE / NEXT ID / COMPLETE ===== */
+/* (Unchanged working logic — included fully below) */
 
 document.getElementById('capture').onclick = () => {
 
