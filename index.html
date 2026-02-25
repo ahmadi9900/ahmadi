@@ -120,7 +120,7 @@ let cards = [];
 let cvReady = false;
 
 const ID_RATIO = 1.586;
-const ID_WIDTH = 1400; 
+const ID_WIDTH = 1400;
 const ID_HEIGHT = Math.round(ID_WIDTH / ID_RATIO);
 
 canvas.width = ID_WIDTH;
@@ -140,7 +140,6 @@ document.getElementById('startCamera').onclick = async () => {
 };
 
 document.getElementById('capture').onclick = () => {
-
   if (!cvReady) {
     status.textContent = "OpenCV still loading...";
     return;
@@ -218,12 +217,18 @@ document.getElementById('capture').onclick = () => {
 
   cv.warpPerspective(src,dst,M,new cv.Size(ID_WIDTH,ID_HEIGHT),cv.INTER_CUBIC);
 
-  // ===== ENHANCEMENTS =====
+  // ===== BLACK BOOST =====
   let dstData = new cv.Mat();
   dst.copyTo(dstData);
 
-  // Global contrast for black text
-  dstData.convertTo(dstData, -1, 1.5, 0); // alpha=1.5 contrast boost, beta=0 brightness
+  for(let i=0;i<dstData.rows;i++){
+    for(let j=0;j<dstData.cols;j++){
+      let pixel = dstData.ucharPtr(i,j);
+      for(let c=0;c<3;c++){
+        if(pixel[c] < 128) pixel[c] = Math.max(0, pixel[c]*0.5); // dark areas darker
+      }
+    }
+  }
 
   // Slight sharpen
   let kernel = cv.matFromArray(3,3,cv.CV_32F,[
@@ -242,11 +247,11 @@ document.getElementById('capture').onclick = () => {
 
   if(captureStep===0){
     currentCard.front=imageData;
-    status.textContent="Front captured (text boosted).";
+    status.textContent="Front captured (black enhanced).";
     captureStep=1;
   } else {
     currentCard.back=imageData;
-    status.textContent="Back captured (text boosted).";
+    status.textContent="Back captured (black enhanced).";
     captureStep=0;
   }
 };
@@ -292,7 +297,7 @@ document.getElementById('complete').onclick = () => {
     if(card.back) pdf.addImage(card.back,"JPEG",x,yBack,imgWidth,imgHeight);
   });
 
-  pdf.save("IDCards_TextBoosted.pdf");
+  pdf.save("IDCards_BlackEnhanced.pdf");
   cards=[];
 };
 </script>
