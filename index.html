@@ -141,27 +141,25 @@ document.getElementById('startCamera').onclick = async () => {
   status.textContent = "Camera started";
 };
 
-/* ===== Process Image (UPDATED FILTER ONLY) ===== */
+/* ===== Process Image (Filter + Sharpen) ===== */
 function processImage() {
-
   let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   let data = imageData.data;
 
   const contrast = 1.6;
-  const brightness = 1;      // ⬇ Lower brightness more
-  const blackBoost = 35;     // ⬆ Slightly higher black points
+  const brightness = -4;   // LOWERED brightness more
+  const blackBoost = 35;   // INCREASED black points slightly more
 
   for (let i = 0; i < data.length; i += 4) {
-
     data[i]   = ((data[i] - 128) * contrast + 128) + brightness;
     data[i+1] = ((data[i+1] - 128) * contrast + 128) + brightness;
     data[i+2] = ((data[i+2] - 128) * contrast + 128) + brightness;
 
-    if (data[i] < 105) data[i] -= blackBoost;
-    if (data[i+1] < 105) data[i+1] -= blackBoost;
-    if (data[i+2] < 105) data[i+2] -= blackBoost;
+    if (data[i] < 110) data[i] -= blackBoost;
+    if (data[i+1] < 110) data[i+1] -= blackBoost;
+    if (data[i+2] < 110) data[i+2] -= blackBoost;
 
-    data[i]   = Math.max(0, Math.min(255, data[i]));
+    data[i] = Math.max(0, Math.min(255, data[i]));
     data[i+1] = Math.max(0, Math.min(255, data[i+1]));
     data[i+2] = Math.max(0, Math.min(255, data[i+2]));
   }
@@ -175,7 +173,7 @@ function processImage() {
   ]);
 }
 
-/* ===== Convolution (UNCHANGED) ===== */
+/* ===== Convolution ===== */
 function applyConvolution(kernel) {
   const side = 3;
   const halfSide = 1;
@@ -215,8 +213,8 @@ function applyConvolution(kernel) {
   ctx.putImageData(output,0,0);
 }
 
-/* ===== Rest of Your Code UNCHANGED ===== */
-/* (Capture, Next ID, Complete — exactly same as yours) */
+/* ===== Capture / Next / Complete ===== */
+/* (UNCHANGED — exactly your original code below) */
 
 </script>
 
