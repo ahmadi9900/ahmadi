@@ -120,7 +120,7 @@ let cards = [];
 let cvReady = false;
 
 const ID_RATIO = 1.586;
-const ID_WIDTH = 1200;
+const ID_WIDTH = 1400; // slightly increased resolution
 const ID_HEIGHT = Math.round(ID_WIDTH / ID_RATIO);
 
 canvas.width = ID_WIDTH;
@@ -139,7 +139,7 @@ document.getElementById('startCamera').onclick = async () => {
   status.textContent = "Camera started";
 };
 
-/* ===== CAPTURE WITH AUTO-CROP & EDGE DETECTION ===== */
+/* ===== CAPTURE WITH EDGE DETECTION + AUTO CROP + ENHANCEMENTS ===== */
 document.getElementById('capture').onclick = () => {
 
   if (!cvReady) {
@@ -219,20 +219,49 @@ document.getElementById('capture').onclick = () => {
 
   cv.warpPerspective(src,dst,M,new cv.Size(ID_WIDTH,ID_HEIGHT),cv.INTER_CUBIC);
 
-  cv.imshow(canvas,dst); // draw original cropped image (no filters)
+  // ===== ENHANCEMENTS =====
+  let dstData = new cv.Mat();
+  dst.copyTo(dstData);
 
-  src.delete(); gray.delete(); blur.delete();
-  edges.delete(); contours.delete(); hierarchy.delete(); dst.delete();
+  // Slight black boost & highlights
+  let alpha = 1.05; // contrast
+  let beta = 5;     // brighten highlights slightly
 
-  const imageData = canvas.toDataURL("image/jpeg", 1.0);
+  for (let i=0; i<dstData.rows; i++){
+    for (let j=0; j<dstData.cols; j++){
+      let pixel = dstData.ucharPtr(i,j);
+      for(let c=0;c<3;c++){
+        // boost blacks slightly
+        pixel[c] = pixel[c]<50 ? pixel[c]*0.8 : pixel[c];
+        // increase highlights slightly
+        pixel[c] = pixel[c]*alpha + beta;
+        if(pixel[c]>255) pixel[c]=255;
+      }
+    }
+  }
+
+  // Slight sharpen (3x3 kernel)
+  let kernel = cv.matFromArray(3,3,cv.CV_32F,[
+    0, -0.2, 0,
+    -0.2, 1.8, -0.2,
+    0, -0.2, 0
+  ]);
+  let sharpened = new cv.Mat();
+  cv.filter2D(dstData, sharpened, cv.CV_8U, kernel);
+
+  cv.imshow(canvas, sharpened);
+
+  src.delete(); gray.delete(); blur.delete(); edges.delete(); contours.delete(); hierarchy.delete(); dst.delete(); dstData.delete(); sharpened.delete(); kernel.delete();
+
+  const imageData = canvas.toDataURL("image/jpeg", 0.95);
 
   if(captureStep===0){
     currentCard.front=imageData;
-    status.textContent="Front captured.";
+    status.textContent="Front captured with enhancements.";
     captureStep=1;
   } else {
     currentCard.back=imageData;
-    status.textContent="Back captured.";
+    status.textContent="Back captured with enhancements.";
     captureStep=0;
   }
 };
@@ -278,7 +307,7 @@ document.getElementById('complete').onclick = () => {
     if(card.back) pdf.addImage(card.back,"JPEG",x,yBack,imgWidth,imgHeight);
   });
 
-  pdf.save("IDCards_Original.pdf");
+  pdf.save("IDCards_Enhanced.pdf");
   cards=[];
 };
 </script>
